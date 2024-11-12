@@ -1,9 +1,11 @@
-const net = require('node:net');
-const {EventEmitter} = require('node:events');
-
+import * as net from "net";
 class MySocket{
-  constructor(socket, needConnected = true){
+  private readonly socket: net.Socket;
+  public name: string;
+
+  constructor(socket:net.Socket, needConnected = true){
     this.socket = socket;
+    this.name = this.socket.remoteAddress;
     if (!needConnected){
       return
     }
@@ -58,8 +60,8 @@ class MySocket{
 
 
   get broadcast() {
-    let newSocket = new MySocket(this.socket, false);
-    let socketsWithoutThis = connectedSockets.filter(s => s != this);
+    let newSocket:MySocket = new MySocket(this.socket, false);
+    let socketsWithoutThis:MySocket[] = connectedSockets.filter(s => s != this);
 
     newSocket.emit = (msg) => {
       socketsWithoutThis.forEach(s => s.send(msg));
@@ -70,11 +72,11 @@ class MySocket{
 
 
 
-let inactiveSockets = [];
-let connectedSockets = [];
+let inactiveSockets : MySocket[] = [];
+let connectedSockets : MySocket[] = [];
 
-const telnetServer = net.createServer((socket) => {
-  socket = new MySocket(socket);
+const telnetServer : net.Server = net.createServer((s:net.Socket) => {
+  const socket:MySocket = new MySocket(s);
   socket.send('Welcome!');
 })
 
