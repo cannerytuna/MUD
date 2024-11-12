@@ -1,4 +1,4 @@
-import * as net from "net";
+import * as net from "node:net";
 class MySocket{
   private readonly socket: net.Socket;
   public name: string;
