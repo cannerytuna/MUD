@@ -2,6 +2,8 @@ import * as net from "node:net";
 import setupCommands from "./setupCommands.js";
 import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
 
+
+//Wrapper class to manage net.Socket instances
 export class MySocket{
     private readonly socket: net.Socket;
     private readonly commands: (command : string, msg : string) => boolean;
@@ -21,13 +23,15 @@ export class MySocket{
         while (this.id in Object.keys(connectedSockets))
             this.id = MySocket.assignId();
 
+        console.log(this.id);
+
         this.socket.on('close',() => removeSocket(this));
 
         //
         // Accepts input from user
         //
-        let bufArr = [];
-        this.socket.on('data', (buf) => {
+        let bufArr:Buffer[] = [];
+        this.socket.on('data', (buf : Buffer) => {
             if (buf.toString() == "\r\n"){
                 this.checkMessage(bufArr.join(''));
                 bufArr = [];

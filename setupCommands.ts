@@ -3,6 +3,7 @@ import {getConnectedSockets} from "./telnet.js";
 
 export default (socket: MySocket) => {
 return function (command : string, msg : string){
+msg = msg.toLowerCase();
 const commands = {
     //
     // semi-colon commands
@@ -16,6 +17,9 @@ const commands = {
     "set": function () {
         let mArr = msg.split(' ');
         socket[mArr[0]] = mArr[1];
+    },
+    "quit": async function () {
+        await socket.close();
     }
 }
 if (!commands[command])

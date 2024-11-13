@@ -13,17 +13,14 @@ export function getConnectedSockets () : MySocket[]{
 const telnetServer : net.Server = net.createServer((s:net.Socket) => {
   const socket:MySocket = new MySocket(s);
   connectedSockets[socket.id] = socket;
-  console.log(connectedSockets);
   socket.send('Welcome!');
 })
-export function removeSocket (socket) {
+export function removeSocket (socket : MySocket) {
   delete connectedSockets[socket.id];
 }
 
-process.on('exit', async () => {
-  // @ts-ignore
+process.on('exit', async ()=> {
   for (const socket of getConnectedSockets()) {
-    // @ts-ignore
     await socket.close();
   }
   telnetServer.close();
