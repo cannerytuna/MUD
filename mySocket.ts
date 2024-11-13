@@ -1,15 +1,13 @@
 import * as net from "node:net";
-import setupCommands from "./setupCommands.js";
+import commandEmit from "./setupCommands.js";
 import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
 
 
 //Wrapper class to manage net.Socket instances
 export default class MySocket{
-    private readonly socket: net.Socket;
-    private readonly commands: (command : string, msg : string) => boolean;
-
-    public name: string;
+    readonly socket: net.Socket;
     public id: string;
+    name;
 
     constructor(socket:net.Socket, needConnected = true){
         this.socket = socket;
@@ -18,14 +16,11 @@ export default class MySocket{
             return
         }
 
-        this.commands = setupCommands(this);
         this.id = MySocket.assignId();
         while (this.id in Object.keys(connectedSockets))
             this.id = MySocket.assignId();
 
         console.log(this.id);
-
-        this.socket.on('close',() => removeSocket(this));
 
         //
         // Accepts input from user
@@ -66,7 +61,7 @@ export default class MySocket{
             case ';':
                 const commandWords = msg.slice(1, msg.length).split(' ');
                 const command = commandWords[0].toLowerCase();
-                if(!this.commands(command, commandWords.slice(1, commandWords.length).join(' ')))
+                if(!commandEmit.emit(command, this, commandWords.slice(1, commandWords.length).join(' ')))
                     this.send("Command does not exist. Please try again.");
                 return;
             //pose prefix
@@ -84,13 +79,22 @@ export default class MySocket{
         }
 
         this.messageUpdate(result);
-        this.send(sendBack);
+        this.replaceLine(sendBack);
     }
-
-
 
     messageUpdate(msg){
         this.broadcast.emit(msg);
+    }
+
+    replaceLine(msg) {
+        this.socket.write("\x1b[2K");
+        this.socket.write("\x1b[A");
+        this.socket.write(msg);
+        this.socket.write("\r\n");
+    }
+
+    clearScreen() {
+        this.socket.write("\x1b[2J");
     }
 
     send(msg){
@@ -104,6 +108,7 @@ export default class MySocket{
 
     async close() {
         this.socket.end(() => {
+            removeSocket(this);
             return true;
         });
     }
