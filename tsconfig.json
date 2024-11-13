@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "moduleResolution": "Nodenext",
-    "module": "es6",
-    "target": "es5"
+    "moduleResolution": "nodenext",
+    "module": "ES6",
+    "target": "ES5"
   },
   "exclude": [
     "node_modules"
