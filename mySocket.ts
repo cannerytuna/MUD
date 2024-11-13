@@ -63,21 +63,21 @@ export class MySocket{
             //command prefix
             case ';':
                 const commandWords = msg.slice(1, msg.length).split(' ');
-                const command = commandWords[0];
+                const command = commandWords[0].toLowerCase();
                 if(!this.commands(command, commandWords.slice(1, commandWords.length).join(' ')))
                     this.send("Command does not exist. Please try again.");
                 return;
             //pose prefix
             case ':':
                 let string = msg.slice(1, msg.length);
-                if (string.charAt(0) != "'s" && string.charAt(0) != 's' && string.charAt(0) != ' ')
+                if (string.slice(0,2) != "'s " && string.slice(0,1) != 's ' && string.charAt(0) != ' ')
                     string = ' ' + string;
                 result = this.name + string;
                 sendBack = result;
                 break;
             //default say
             default:
-                result = this.socket.remoteAddress + " says, " + msg;
+                result = this.name + " says, " + msg;
                 sendBack = "You said, " + msg;
         }
 
