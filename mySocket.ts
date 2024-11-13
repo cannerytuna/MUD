@@ -4,7 +4,7 @@ import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
 
 
 //Wrapper class to manage net.Socket instances
-export class MySocket{
+export default class MySocket{
     private readonly socket: net.Socket;
     private readonly commands: (command : string, msg : string) => boolean;
 
@@ -50,6 +50,8 @@ export class MySocket{
     }
 
     checkMessage(msg :string) {
+        msg = msg.trim();
+
         if (msg === '')
             return;
 
@@ -70,15 +72,15 @@ export class MySocket{
             //pose prefix
             case ':':
                 let string = msg.slice(1, msg.length);
-                if (string.slice(0,2) != "'s " && string.slice(0,1) != 's ' && string.charAt(0) != ' ')
+                if (string.slice(0,3) !== "'s " && string.slice(0,2) !== 's ' && string.slice(0,3) !== "s' " && string.charAt(0) !== ' ')
                     string = ' ' + string;
                 result = this.name + string;
                 sendBack = result;
                 break;
             //default say
             default:
-                result = this.name + " says, " + msg;
-                sendBack = "You said, " + msg;
+                result = this.name + ' says, "' + msg + '"';
+                sendBack = 'You said, "' + msg + '"';
         }
 
         this.messageUpdate(result);

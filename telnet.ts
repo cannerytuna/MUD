@@ -1,5 +1,5 @@
 import * as net from "net";
-import {MySocket} from "./mySocket.js";
+import MySocket from "./mySocket.js";
 
 interface socketMap {
   [id : string] : MySocket;
