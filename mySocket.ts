@@ -1,47 +1,56 @@
 import * as net from "node:net";
 import commandEmit from "./setupCommands.js";
 import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
+import Player from "./player.js";
 
 
 //Wrapper class to manage net.Socket instances
 export default class MySocket{
-    readonly socket: net.Socket;
-    public id: string;
+    private readonly socket: net.Socket;
+    private readonly _id: string;
+    public player: Player;
     name;
 
-    constructor(socket:net.Socket, needConnected = true){
+    constructor(socket:net.Socket){
         this.socket = socket;
         this.name = this.socket.remoteAddress; //placeholder
-        if (!needConnected){
-            return
-        }
 
-        this.id = MySocket.assignId();
-        while (this.id in Object.keys(connectedSockets))
-            this.id = MySocket.assignId();
+        this._id = MySocket.assignId();
+        while (this._id in Object.keys(connectedSockets))
+            this._id = MySocket.assignId();
 
-        console.log(this.id);
+        socket.on('close', async () => {
+            await this.close();
+        })
+    }
 
+    public initiateChat () {
         //
         // Accepts input from user
         //
         let bufArr:Buffer[] = [];
         this.socket.on('data', (buf : Buffer) => {
-            if (buf.toString() == "\r\n"){
-                this.checkMessage(bufArr.join(''));
+            if (buf.toString().includes("\r\n")){
+                bufArr.push(buf);
+                let str = bufArr.join('');
+                this.checkMessage(str.slice(0, str.length - 1));
                 bufArr = [];
             } else if (buf.toString() == '\b'){
+                this.socket.write(" \x1b[D");
                 bufArr.pop();
             }
             else {
                 bufArr.push(buf);
             }
         })
-
     }
+
 
     public static assignId() {
         return Math.floor(Math.random() * 65536).toString(16);
+    }
+    get id(): string {
+        return this._id;
     }
 
     checkMessage(msg :string) {
@@ -69,21 +78,22 @@ export default class MySocket{
                 let string = msg.slice(1, msg.length);
                 if (string.slice(0,3) !== "'s " && string.slice(0,2) !== 's ' && string.slice(0,3) !== "s' " && string.charAt(0) !== ' ')
                     string = ' ' + string;
-                result = this.name + string;
-                sendBack = result;
-                break;
+                this.emit(this.name + string);
+                return;
             //default say
             default:
                 result = this.name + ' says, "' + msg + '"';
                 sendBack = 'You said, "' + msg + '"';
         }
 
-        this.messageUpdate(result);
+        this.broadcast(result);
         this.replaceLine(sendBack);
     }
 
-    messageUpdate(msg){
-        this.broadcast.emit(msg);
+    broadcast(msg){
+        getConnectedSockets().forEach(sock => {
+            if (sock._id !== this._id) sock.send(msg)
+        })
     }
 
     replaceLine(msg) {
@@ -109,18 +119,11 @@ export default class MySocket{
     async close() {
         this.socket.end(() => {
             removeSocket(this);
-            return true;
         });
     }
 
-    get broadcast() {
-        let newSocket:MySocket = new MySocket(this.socket, false);
-        let socketsWithoutThis:MySocket[] = getConnectedSockets().filter((s : MySocket) => s != this);
-
-        newSocket.emit = (msg) => {
-            socketsWithoutThis.forEach(s => s.send(msg));
-        }
-        return newSocket;
+    static sendAll(msg) {
+        getConnectedSockets().forEach(s => s.send(msg));
     }
 }
 

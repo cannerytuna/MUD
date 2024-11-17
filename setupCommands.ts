@@ -12,8 +12,6 @@ const commands = {
     // ;ws
     // ;set name james
     //
-    "list": function () {this.ws()},
-    "online": function () {this.ws()},
     "ws": function () {
         this.send("\x1b[31;1;4mThere is " + getConnectedSockets().length + " users online: \x1b[0m");
         getConnectedSockets().map(s => s.name).forEach(n => this.send(n + " is online."));
@@ -26,6 +24,34 @@ const commands = {
             this.send("Set " + mArr[0].toUpperCase() + " to " + mArr[1]);
         } else this.send("You can't set that property!");
     },
+    "help": function (msg :string) {
+        let dA = 5; //distance apart
+        let split = 3;
+        if (msg) {
+            try {
+                split = Number(msg);
+            } catch (e) {
+                split = 3;
+            }
+        }
+
+
+        let str = "";
+        this.send("\x1b[32m");
+        for (let i = 0; i < listCommands.length; i++) {
+            let col = i % split;
+            str += " ".repeat(dA);
+            str += listCommands[i];
+            if (col === split - 1){
+                this.send(str);
+                str = ""
+            }
+        }
+        if (str != "")
+            this.send(str);
+
+        this.send("\x1b[0m");
+    },
     "clear":function () {
         this.clearScreen();
     },
@@ -35,14 +61,13 @@ const commands = {
     }
 }
 
-const listCommands = Object.keys(commands);
+const listCommands = Object.keys(commands).sort((a, b) => a.localeCompare(b));
+
 const commandEmit = new EventEmitter();
 
 for (const key of Object.keys(commands)){
     commandEmit.on(key, (scope : MySocket, msg) => {
-        let command = commands[key].bind(scope);
-        console.log(command);
-        command(msg);
+        commands[key].bind(scope) (msg);
     })
 }
 
