@@ -35,7 +35,6 @@ const commands = {
             }
         }
 
-
         let str = "";
         this.send("\x1b[32m");
         for (let i = 0; i < listCommands.length; i++) {
