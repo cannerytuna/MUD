@@ -108,7 +108,8 @@ export default class MySocket{
     }
 
     send(msg){
-        this.socket.write(msg);
+        if (msg)
+            this.socket.write(msg);
         this.socket.write("\r\n");
     }
 
