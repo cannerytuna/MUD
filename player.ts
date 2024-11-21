@@ -1,21 +1,42 @@
 import {getConnectedSockets} from "./telnet.js";
+import * as fs from "fs";
 
 interface playerList {
-    username: Player
+    [username : string] : Player
 }
 
-export default class Player {
+class Player {
     private _name :string;
     private _desc :string[];
-    private username :string;
-    private password :string;
+    private _password :string;
+
+    constructor(username : string) {
+        this.name = username;
+        this.desc = [""];
+        this._password = '';
+    }
+
+    hasPassword() {
+        return (this._password != "");
+    }
+
+    checkPassword(attempt : string) {
+        return this._password === attempt;
+    }
+    setPassword(newPassword) {
+        this._password = newPassword;
+    }
 
     static getConnectedPlayers(){
         return getConnectedSockets().map(s => s.player);
     }
 
-    private static playerList:playerList = {};
+    static playerList:playerList;
 
+    static loadPlayerData() {
+                fs.writeFileSync("./players.txt",
+                    JSON.stringify(Player.playerList));
+    }
 
     get name(): string {
         return this._name;
@@ -33,6 +54,19 @@ export default class Player {
     }
 
     static isPlayer(str: string):boolean {
-
+        return !!Player.playerList[str];
     }
 }
+
+fs.readFile("./players.txt", "utf8", (err, data) => {
+    if (err)
+        throw err;
+    if (data === ""){
+        Player.playerList = {};
+        return;
+    }
+    Player.playerList = JSON.parse(data);
+    Object.values(Player.playerList).forEach(player => Object.setPrototypeOf(player, Player.prototype));
+});
+
+export default Player;

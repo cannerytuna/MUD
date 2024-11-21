@@ -13,7 +13,6 @@ export default class MySocket{
 
     constructor(socket:net.Socket){
         this.socket = socket;
-        this.name = this.socket.remoteAddress; //placeholder
 
         this._id = MySocket.assignId();
         while (this._id in Object.keys(connectedSockets))
@@ -22,20 +21,30 @@ export default class MySocket{
         socket.on('close', async () => {
             await this.close();
         })
+
+        this.socket.on('data', () => {});
     }
 
-    public initiateChat () {
+    public initiateChat (f? : Function) {
+        this.socket.removeAllListeners("data");
         //
         // Accepts input from user
         //
         let bufArr:Buffer[] = [];
         this.socket.on('data', (buf : Buffer) => {
-            if (buf.toString().includes("\r\n")){
+            let char = buf.toString();
+            if (char.includes("\x1b["))
+                return;
+            if (char.includes("\r\n")){
                 bufArr.push(buf);
                 let str = bufArr.join('');
-                this.checkMessage(str.slice(0, str.length - 1));
+                str = str.slice(0, str.length - 2);
+                if (f){
+                    f(str);
+                } else
+                    this.checkMessage(str);
                 bufArr = [];
-            } else if (buf.toString() == '\b'){
+            } else if (char == '\b'){
                 this.socket.write(" \x1b[D");
                 bufArr.pop();
             }
@@ -78,11 +87,11 @@ export default class MySocket{
                 let string = msg.slice(1, msg.length);
                 if (string.slice(0,3) !== "'s " && string.slice(0,2) !== 's ' && string.slice(0,3) !== "s' " && string.charAt(0) !== ' ')
                     string = ' ' + string;
-                this.emit(this.name + string);
+                this.emit(this.player.name + string);
                 return;
             //default say
             default:
-                result = this.name + ' says, "' + msg + '"';
+                result = this.player.name + ' says, "' + msg + '"';
                 sendBack = 'You said, "' + msg + '"';
         }
 
@@ -121,10 +130,6 @@ export default class MySocket{
         this.socket.end(() => {
             removeSocket(this);
         });
-    }
-
-    static sendAll(msg) {
-        getConnectedSockets().forEach(s => s.send(msg));
     }
 }
 

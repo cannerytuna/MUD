@@ -14,7 +14,8 @@ const commands = {
     // ;set name james
     //
     "ws": function () {
-        this.send("\x1b[31;1;4mThere is " + getConnectedSockets().length + " users online: \x1b[0m");
+        let len = getConnectedSockets().length
+        this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" : "" ) + " online: \x1b[0m");
         getConnectedSockets().map(s => s.name).forEach(n => this.send(n + " is online."));
         this.send(' ');
     },
@@ -77,9 +78,8 @@ const commands = {
     },
     "look" : function (msg) {
         let sArr = msg.split(' ');
-        let player :Player;
         if (sArr[0] == "me") {
-            player = this.player;
+            this.send(this.player.desc);
         }else {
             for (const player of Player.getConnectedPlayers()){
                 if (player.name == sArr[0]) {
@@ -126,10 +126,11 @@ async function editDescMode() {
 
         if (msg.charAt(0) == '.'){
             let command = msg.split(" ");
-            let arg = Number(command[1]);
+            let arg = Number(command[1]) - 1;
             switch (command[0]){
                 case ".line":
-                    currentIndex = arg;
+                    if (arg <= (desc.length))
+                        currentIndex = arg;
                     break;
                 case ".del":
                     if (desc.length == 0)
@@ -138,6 +139,11 @@ async function editDescMode() {
                     let front = desc.slice(0, arg);
                     desc = front.concat(slice);
                     currentIndex -= 1;
+                    break;
+                case ".list":
+                    desc.forEach((line, index) => {
+                        this.send((index + 1) + ": " + line);
+                    })
                     break;
                 case ".exit":
                     this.checkMessage = MySocket.prototype.checkMessage.bind(this);
@@ -154,14 +160,16 @@ async function editDescMode() {
             desc = front.concat(slice);
         } else {
             desc.push(msg);
-            currentIndex += 1;
         }
+        currentIndex += 1;
         update();
     };
 
     const update = () => {
         this.send("\x1b[32m<inserting at line " + (currentIndex + 1) + " >\x1b[0m");
     }
+
+    update();
 }
 
 
