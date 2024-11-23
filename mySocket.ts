@@ -31,7 +31,6 @@ export default class MySocket{
         //
         let bufArr:Buffer[] = [];
         this.socket.on('data', (buf : Buffer) => {
-            this.socket.write(buf);
             let char = buf.toString();
             if (char.includes("\x1b["))
                 return;
