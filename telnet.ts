@@ -1,9 +1,13 @@
 import * as net from "net";
+import {readFileSync} from "fs";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
 import prompt from "./prompt.js"
 import player from "./player.js";
+import {type} from "os";
 
+const willowASSCI = JSON.parse(readFileSync("willow.json", {encoding: "utf8"}))["DurMovie"].frames[0].contents.join("\r\n")
+console.log(willowASSCI);
 interface socketMap {
   [id : string] : MySocket;
 }
@@ -19,28 +23,31 @@ const telnetServer : net.Server = net.createServer(async (s: net.Socket) => {
   console.log("New connection from " + s.remoteAddress);
   const socket: MySocket = new MySocket(s);
 
-  try {
-    if (await login(socket))
-      setTimeout(() => {
-        socket.broadcast(socket.player.name + " has connected");
-        socket.initiateChat()
-        socket.broadcast(socket.player.name + " has joined the chat");
-        connectedSockets[socket.id] = socket;
-        socket.clearScreen();
-        socket.send('Welcome!');
-      }, 2000);
-  } catch (e) {
+
+  if (await login(socket)) {
+    socket.clearScreen();
+    socket.send(Buffer.from(willowASSCI));
+    socket.broadcast(socket.player.name + " has connected");
+    setTimeout(() => {
+      socket.broadcast(socket.player.name + " has connected");
+      socket.initiateChat()
+      socket.broadcast(socket.player.name + " has joined the chat");
+      connectedSockets[socket.id] = socket;
+      socket.send('Welcome!');
+    }, 2000);
+  } else {
     console.log("Connection " + socket.id + " has failed authentication.");
+    await socket.close();
   }
 })
 
 async function login(socket):Promise<boolean> {
 
-  async function* gen() : AsyncGenerator<string> {
+  async function* gen() : AsyncGenerator<string | undefined> {
     let res;
     socket.initiateChat(msg => {
       if (msg == ";quit") {
-        throw Error;
+        return undefined;
       }
       else
         res(msg);
@@ -53,15 +60,21 @@ async function login(socket):Promise<boolean> {
     }
   }
 
+  async function ask() {
+    return (await input.next().catch(e => {throw e})).value
+  }
+
   let input = gen();
   while (true) {
     socket.send("username: ");
-    let username = (await input.next()).value;
+    let username = await ask();
+    if (typeof username == "undefined") return false;
     if (Player.playerList[username]) {
       if (Player.playerList[username].hasPassword()){
         while (true) {
           socket.send("password: ");
-          let password = (await input.next()).value;
+          let password = await ask();
+          if (typeof username == "undefined") return false;
           if (Player.playerList[username].checkPassword(password)){
             socket.player = Player.playerList[username];
             return true;
@@ -73,7 +86,7 @@ async function login(socket):Promise<boolean> {
         socket.send("new user detected!");
         socket.send("please choose a new password, please choose carefully, you will have to ask to have it changed in the future.");
         socket.send("new password: ");
-        let password = (await input.next()).value;
+        let password = await ask();
         socket.player.setPassword(password);
         return true;
       }
