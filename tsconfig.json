@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
     "module": "ES6",
     "target": "ES5"
   },

@@ -31,6 +31,7 @@ export default class MySocket{
         //
         let bufArr:Buffer[] = [];
         this.socket.on('data', (buf : Buffer) => {
+            this.socket.write(buf);
             let char = buf.toString();
             if (char.includes("\x1b["))
                 return;
@@ -44,7 +45,6 @@ export default class MySocket{
                     this.checkMessage(str);
                 bufArr = [];
             } else if (char == '\b'){
-                this.socket.write(" \x1b[D");
                 bufArr.pop();
             }
             else {
@@ -96,20 +96,13 @@ export default class MySocket{
         }
 
         this.broadcast(result);
-        this.replaceLine(sendBack);
+        this.send(sendBack);
     }
 
     broadcast(msg){
         getConnectedSockets().forEach(sock => {
             if (sock._id !== this._id) sock.send(msg)
         })
-    }
-
-    replaceLine(msg) {
-        this.socket.write("\x1b[2K");
-        this.socket.write("\x1b[A");
-        this.socket.write(msg);
-        this.socket.write("\r\n");
     }
 
     clearScreen() {
