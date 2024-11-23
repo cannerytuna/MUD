@@ -9,7 +9,6 @@ export default class MySocket{
     private readonly socket: net.Socket;
     private readonly _id: string;
     public player: Player;
-    name;
 
     constructor(socket:net.Socket){
         this.socket = socket;
@@ -87,11 +86,12 @@ export default class MySocket{
                 let string = msg.slice(1, msg.length);
                 if (string.slice(0,3) !== "'s " && string.slice(0,2) !== 's ' && string.slice(0,3) !== "s' " && string.charAt(0) !== ' ')
                     string = ' ' + string;
-                this.emit(this.player.name + string);
-                return;
+                result = this.player.name + string;
+                sendBack = result;
+                break;
             //default say
             default:
-                result = this.player.name + ' says, "' + msg + '"';
+                result = this.player.name + ` ${this.player.say}, "` + msg + '"';
                 sendBack = 'You said, "' + msg + '"';
         }
 
@@ -128,7 +128,10 @@ export default class MySocket{
 
     async close() {
         this.socket.end(() => {
-            removeSocket(this);
+            if (this.player){
+                this.broadcast(this.player.name + " has left.");
+                removeSocket(this);
+            }
         });
     }
 }

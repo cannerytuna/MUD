@@ -16,7 +16,7 @@ const commands = {
     "ws": function () {
         let len = getConnectedSockets().length
         this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" : "" ) + " online: \x1b[0m");
-        getConnectedSockets().map(s => s.name).forEach(n => this.send(n + " is online."));
+        getConnectedSockets().map(s => s.player.name).forEach(n => this.send(n + " is online."));
         this.send(' ');
     },
     "set": function (msg) {
@@ -25,7 +25,7 @@ const commands = {
             if (mArr[0] == "desc") {
                 editDescMode.bind(this)();
             } else {
-                this[mArr[0]] = mArr.slice(1, mArr.length).join(' ');
+                this.player[mArr[0]] = mArr.slice(1, mArr.length).join(' ');
                 this.send("Set " + mArr[0].toUpperCase() + " to " + mArr[1]);
             }
         } else this.send("You can't set that property!");
@@ -77,19 +77,26 @@ const commands = {
         this.send("\x1b[0m");
     },
     "look" : function (msg) {
+        let player : Player;
         let sArr = msg.split(' ');
         if (sArr[0] == "me") {
-            this.send(this.player.desc);
+            player = this.player;
         }else {
-            for (const player of Player.getConnectedPlayers()){
-                if (player.name == sArr[0]) {
-                    this.send(player.desc);
-                    return;
+            for (const p of Player.getConnectedPlayers()){
+                if (p.name == sArr[0]) {
+                    player = p;
+                    break;
                 }
             }
-
-            this.send("That is not a user.");
         }
+        if (player) {
+            this.send("<You looked at " + player.name + ">");
+            for (const line of player.desc) {
+                this.send(line);
+            }
+            return;
+        }
+        this.send("That is not a user.");
     },
     "clear":function () {
         this.clearScreen();
@@ -148,7 +155,9 @@ async function editDescMode() {
                 case ".exit":
                     this.checkMessage = MySocket.prototype.checkMessage.bind(this);
                     this.player.desc = desc;
-                    break;
+                    this.send("==Exiting Edit Mode==");
+                    this.send();
+                    return;
             }
             return update();
         }

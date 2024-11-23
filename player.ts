@@ -9,11 +9,13 @@ class Player {
     private _name :string;
     private _desc :string[];
     private _password :string;
+    public say :string;
 
     constructor(username : string) {
         this.name = username;
         this.desc = [""];
         this._password = '';
+        this.say = "says";
     }
 
     hasPassword() {
