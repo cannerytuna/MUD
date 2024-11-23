@@ -3,8 +3,6 @@ import {readFileSync} from "fs";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
 import prompt from "./prompt.js"
-import player from "./player.js";
-import {type} from "os";
 
 const willowASSCI = JSON.parse(readFileSync("willow.json", {encoding: "utf8"}))["DurMovie"].frames[0].contents.join("\r\n")
 console.log(willowASSCI);
@@ -117,7 +115,7 @@ let isDone = false;
 
 
 async function saveCycle() {
-  player.loadPlayerData();
+  Player.loadPlayerData();
   setTimeout(saveCycle, 7200000);
 }
 setTimeout(saveCycle, 7200000);
