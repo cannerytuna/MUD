@@ -2,6 +2,7 @@ import * as net from "net";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
 import prompt from "./prompt.js"
+import player from "./player.js";
 
 interface socketMap {
   [id : string] : MySocket;
@@ -15,6 +16,7 @@ export function getConnectedSockets () : MySocket[]{
 }
 
 const telnetServer : net.Server = net.createServer(async (s: net.Socket) => {
+  console.log("New connection from " + s.remoteAddress);
   const socket: MySocket = new MySocket(s);
 
   try {
@@ -28,7 +30,6 @@ const telnetServer : net.Server = net.createServer(async (s: net.Socket) => {
         socket.send('Welcome!');
       }, 2000);
   } catch (e) {
-    console.error(e);
     console.log("Connection " + socket.id + " has failed authentication.");
   }
 })
@@ -100,6 +101,14 @@ telnetServer.listen(23);
 
 
 let isDone = false;
+
+
+async function saveCycle() {
+  player.loadPlayerData();
+  setTimeout(saveCycle, 7200000);
+}
+setTimeout(saveCycle, 7200000);
+
 async function consoleCommand() {
   let cmd = await prompt("cmd:");
   let cmdArr = cmd.split(' ');

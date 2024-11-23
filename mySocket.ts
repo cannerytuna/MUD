@@ -96,20 +96,13 @@ export default class MySocket{
         }
 
         this.broadcast(result);
-        this.replaceLine(sendBack);
+        this.send(sendBack);
     }
 
     broadcast(msg){
         getConnectedSockets().forEach(sock => {
             if (sock._id !== this._id) sock.send(msg)
         })
-    }
-
-    replaceLine(msg) {
-        this.socket.write("\x1b[2K");
-        this.socket.write("\x1b[A");
-        this.socket.write(msg);
-        this.socket.write("\r\n");
     }
 
     clearScreen() {
@@ -127,12 +120,13 @@ export default class MySocket{
     }
 
     async close() {
-        this.socket.end(() => {
-            if (this.player){
-                this.broadcast(this.player.name + " has left.");
-                removeSocket(this);
-            }
-        });
+        if (!this.socket.readableEnded)
+            this.socket.end();
+        if (this.player){
+            this.broadcast(this.player.name + " has left.");
+            removeSocket(this);
+        }
+        console.log("Lost connection to " + this.socket.remoteAddress);
     }
 }
 
