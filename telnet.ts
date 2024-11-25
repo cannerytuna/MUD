@@ -1,10 +1,9 @@
-import * as net from "net";
 import {readFileSync} from "fs";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
-import prompt from "./prompt.js"
-import player from "./player.js";
-import {type} from "os";
+import prompt from "./prompt.js";
+import ssh2 from "ssh2";
+
 
 const willowASSCI = JSON.parse(readFileSync("willow.json", {encoding: "utf8"}))["DurMovie"].frames[0].contents.join("\r\n")
 console.log(willowASSCI);
@@ -19,27 +18,38 @@ export function getConnectedSockets () : MySocket[]{
   return Object.values(connectedSockets);
 }
 
-const telnetServer : net.Server = net.createServer(async (s: net.Socket) => {
-  console.log("New connection from " + s.remoteAddress);
-  const socket: MySocket = new MySocket(s);
 
 
-  if (await login(socket)) {
-    socket.clearScreen();
-    socket.send(Buffer.from(willowASSCI));
-    socket.broadcast(socket.player.name + " has connected");
-    setTimeout(() => {
-      socket.broadcast(socket.player.name + " has connected");
-      socket.initiateChat()
-      socket.broadcast(socket.player.name + " has joined the chat");
-      connectedSockets[socket.id] = socket;
-      socket.send('Welcome!');
-    }, 2000);
-  } else {
-    console.log("Connection " + socket.id + " has failed authentication.");
-    await socket.close();
-  }
+const server = new ssh2.Server({
+  hostKeys: [readFileSync("private")],
+  banner: willowASSCI
+},function (socket, info){
+  console.log("New connection from " + info.ip + ":" + info.port);
 })
+server.listen('22');
+
+
+// const telnetServer : net.Server = net.createServer(async (s: net.Socket) => {
+//   console.log("New connection from " + s.remoteAddress);
+//   const socket: MySocket = new MySocket(s);
+//
+//
+//   if (await login(socket)) {
+//     socket.clearScreen();
+//     socket.send(Buffer.from(willowASSCI));
+//     socket.broadcast(socket.player.name + " has connected");
+//     setTimeout(() => {
+//       socket.broadcast(socket.player.name + " has connected");
+//       socket.initiateChat()
+//       socket.broadcast(socket.player.name + " has joined the chat");
+//       connectedSockets[socket.id] = socket;
+//       socket.send('Welcome!');
+//     }, 2000);
+//   } else {
+//     console.log("Connection " + socket.id + " has failed authentication.");
+//     await socket.close();
+//   }
+// })
 
 async function login(socket):Promise<boolean> {
 
@@ -106,18 +116,15 @@ process.on('exit', async () => {
     await socket.close();
   }
   Player.loadPlayerData();
-  telnetServer.close();
   console.log("Program exited.");
   });
-
-telnetServer.listen(23);
 
 
 let isDone = false;
 
 
 async function saveCycle() {
-  player.loadPlayerData();
+  Player.loadPlayerData();
   setTimeout(saveCycle, 7200000);
 }
 setTimeout(saveCycle, 7200000);
