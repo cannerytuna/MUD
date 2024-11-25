@@ -25,6 +25,17 @@ const server = new ssh2.Server({
   banner: willowASSCI
 },function (socket, info){
   console.log("New connection from " + info.ip + ":" + info.port);
+  socket.on('authentication', ctx => {
+	  if (ctx.method != "password")
+		  return;
+	  if (Player.playerList[ctx.username]){
+		  Player.playerlist[ctx.username].socket = socket;
+		  const socket = new MySocket(client);
+		  socket.send(readFileSync("texts/onea"));
+		  return;
+	}
+	ctx.reject();
+  }
 })
 server.listen('22');
 
