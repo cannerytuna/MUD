@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import net from "net";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
 import prompt from "./prompt.js";
@@ -21,8 +20,6 @@ export function getConnectedSockets () : MySocket[]{
 }
 
 
-const netServer = new net.Server();
-netServer.listen(22);
 
 const server = new ssh2.Server({
   hostKeys: [fs.readFileSync("private")],
@@ -75,7 +72,7 @@ const server = new ssh2.Server({
     console.log('Client ' + info.ip + ":" + info.port + ' disconnected');
   })
 })
-netServer.on("connection", socket => server.injectSocket(socket));
+server.listen(22);
 
 async function grabIntros() : Promise<{}> {
 	let files : string[] = fs.readdirSync("./texts/"); 
@@ -85,11 +82,11 @@ async function grabIntros() : Promise<{}> {
 	return {nobody, one, couple};
 }
 
-// const texts = grabIntros();
+const texts = grabIntros();
 function randomize(f : Array<any>) : any  { return (function () {
 	const r = Math.random() * this.length;
 	return this[Math.floor(r)];
-}).bind(f)}
+}).bind(f)};
 
 
 
