@@ -23,98 +23,56 @@ export function getConnectedSockets () : MySocket[]{
 const server = new ssh2.Server({
   hostKeys: [readFileSync("private")],
   banner: willowASSCI
-},function (socket, info){
+},function (client, info){
   console.log("New connection from " + info.ip + ":" + info.port);
-  socket.on('authentication', ctx => {
-	  if (ctx.method != "password")
-		  return;
-	  if (Player.playerList[ctx.username]){
-		  Player.playerlist[ctx.username].socket = socket;
-		  const socket = new MySocket(client);
-		  socket.send(readFileSync("texts/onea"));
-		  return;
+  let username = "";
+  client.on("error", () => {
+    client.end();
+  })
+
+  client.on('authentication', (ctx: ssh2.PasswordAuthContext) => {
+    if (ctx.method != "password"){
+      ctx.reject();
+      return;
+    }
+
+    if (Player.playerList[ctx.username]){
+		  if (Player.playerList[ctx.username].checkPassword(ctx.password)){
+            username = ctx.username;
+            ctx.accept();
+            return;
+          }
 	}
 	ctx.reject();
-  }
+  }).on("ready", () => {
+    console.log('Client ' + info.ip + ":" + info.port + ' authenticated');
+    client.on("session", (accept) => {
+      const session = accept();
+      session.once("pty", (accept) => accept());
+      session.once("shell", (accept) => {
+        let connection : ssh2.Channel = accept();
+        let socket = new MySocket(connection, info);
+        socket.player = Player.playerList[username];
+        connectedSockets[socket.id] = socket;
+        socket.clearScreen();
+        socket.send(Buffer.from(willowASSCI));
+        socket.broadcast(socket.player.name + " has connected");
+        setTimeout(() => {
+          socket.broadcast(socket.player.name + " has connected");
+          socket.initiateChat();
+          socket.broadcast(socket.player.name + " has joined the chat");
+          connectedSockets[socket.id] = socket;
+          socket.send();
+          socket.send('Connected to chat.');
+      }, 2000);
+      });
+    })
+}).on("close", () => {
+    console.log('Client ' + info.ip + ":" + info.port + ' disconnected');
+  })
 })
 server.listen('22');
 
-
-// const telnetServer : net.Server = net.createServer(async (s: net.Socket) => {
-//   console.log("New connection from " + s.remoteAddress);
-//   const socket: MySocket = new MySocket(s);
-//
-//
-//   if (await login(socket)) {
-//     socket.clearScreen();
-//     socket.send(Buffer.from(willowASSCI));
-//     socket.broadcast(socket.player.name + " has connected");
-//     setTimeout(() => {
-//       socket.broadcast(socket.player.name + " has connected");
-//       socket.initiateChat()
-//       socket.broadcast(socket.player.name + " has joined the chat");
-//       connectedSockets[socket.id] = socket;
-//       socket.send('Welcome!');
-//     }, 2000);
-//   } else {
-//     console.log("Connection " + socket.id + " has failed authentication.");
-//     await socket.close();
-//   }
-// })
-
-async function login(socket):Promise<boolean> {
-
-  async function* gen() : AsyncGenerator<string | undefined> {
-    let res;
-    socket.initiateChat(msg => {
-      if (msg == ";quit") {
-        return undefined;
-      }
-      else
-        res(msg);
-    });
-
-    while(true) {
-      yield await new Promise(resolve => {
-        res = resolve;
-      })
-    }
-  }
-
-  async function ask() {
-    return (await input.next().catch(e => {throw e})).value
-  }
-
-  let input = gen();
-  while (true) {
-    socket.send("username: ");
-    let username = await ask();
-    if (typeof username == "undefined") return false;
-    if (Player.playerList[username]) {
-      if (Player.playerList[username].hasPassword()){
-        while (true) {
-          socket.send("password: ");
-          let password = await ask();
-          if (typeof username == "undefined") return false;
-          if (Player.playerList[username].checkPassword(password)){
-            socket.player = Player.playerList[username];
-            return true;
-          }
-          socket.send("password incorrect.");
-        }
-      } else {
-        socket.player = Player.playerList[username];
-        socket.send("new user detected!");
-        socket.send("please choose a new password, please choose carefully, you will have to ask to have it changed in the future.");
-        socket.send("new password: ");
-        let password = await ask();
-        socket.player.setPassword(password);
-        return true;
-      }
-    }
-    socket.send("user does not exist.")
-  }
-}
 
 export function removeSocket (socket : MySocket) {
   delete connectedSockets[socket.id];
@@ -127,6 +85,7 @@ process.on('exit', async () => {
     await socket.close();
   }
   Player.loadPlayerData();
+  server.close();
   console.log("Program exited.");
   });
 

@@ -1,17 +1,20 @@
-import * as net from "node:net";
 import commandEmit from "./setupCommands.js";
 import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
 import Player from "./player.js";
+import ssh2 from "ssh2";
+import aEscape from 'ansi-escapes';
 
 
 //Wrapper class to manage net.Socket instances
 export default class MySocket{
-    private readonly socket: net.Socket;
+    private readonly socket: ssh2.Channel;
     private readonly _id: string;
     public player: Player;
+    public info : ssh2.ClientInfo;
 
-    constructor(socket:net.Socket){
+    constructor(socket:ssh2.Channel, info:ssh2.ClientInfo){
         this.socket = socket;
+        this.info = info;
 
         this._id = MySocket.assignId();
         while (this._id in Object.keys(connectedSockets))
@@ -21,10 +24,10 @@ export default class MySocket{
             await this.close();
         })
 
-        this.socket.on('data', () => {});
+
     }
 
-    public initiateChat (f? : Function) {
+    public  initiateChat (f? : Function) {
         this.socket.removeAllListeners("data");
         //
         // Accepts input from user
@@ -34,19 +37,22 @@ export default class MySocket{
             let char = buf.toString();
             if (char.includes("\x1b["))
                 return;
-            if (char.includes("\r\n")){
+            if (char.includes(String.fromCharCode(13))){
+                this.socket.write("\r\n");
                 bufArr.push(buf);
                 let str = bufArr.join('');
-                str = str.slice(0, str.length - 2);
+                str = str.slice(0, str.length - 1);
                 if (f){
                     f(str);
                 } else
                     this.checkMessage(str);
                 bufArr = [];
-            } else if (char == '\b'){
+            } else if (char == String.fromCharCode(127)){
+                this.socket.write(aEscape.cursorBackward() + " " + aEscape.cursorBackward());
                 bufArr.pop();
             }
             else {
+                this.socket.write(char);
                 bufArr.push(buf);
             }
         })
@@ -108,7 +114,7 @@ export default class MySocket{
         this.socket.write("\x1b[2J");
     }
 
-    send(msg){
+    send(msg?){
         if (msg)
             this.socket.write(msg);
         this.socket.write("\r\n");
@@ -125,7 +131,7 @@ export default class MySocket{
             this.broadcast(this.player.name + " has left.");
             removeSocket(this);
         }
-        console.log("Lost connection to " + this.socket.remoteAddress);
+        console.log("Lost connection to " + this.info.ip);
     }
 }
 
