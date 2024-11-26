@@ -72,7 +72,7 @@ const server = new ssh2.Server({
     console.log('Client ' + info.ip + ":" + info.port + ' disconnected');
   })
 })
-server.listen('22');
+server.listen(22);
 
 async function grabIntros() : Promise<{}> {
 	let files : string[] = fs.readdirSync("./texts/"); 
@@ -86,7 +86,7 @@ const texts = grabIntros();
 function randomize(f : Array<any>) : any  { return (function () {
 	const r = Math.random() * this.length;
 	return this[Math.floor(r)];
-}).bind(f)};
+}).bind(f)}
 
 
 
