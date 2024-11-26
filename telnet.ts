@@ -1,11 +1,12 @@
-import {readFileSync} from "fs";
+import * as fs from "fs";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
 import prompt from "./prompt.js";
 import ssh2 from "ssh2";
+import * as fm from "node:fs/promises"
 
 
-const willowASSCI = JSON.parse(readFileSync("willow.json", {encoding: "utf8"}))["DurMovie"].frames[0].contents.join("\r\n")
+const willowASSCI : string = fs.readFileSync("willow.txt", {encoding: "utf8"});
 console.log(willowASSCI);
 interface socketMap {
   [id : string] : MySocket;
@@ -21,7 +22,7 @@ export function getConnectedSockets () : MySocket[]{
 
 
 const server = new ssh2.Server({
-  hostKeys: [readFileSync("private")],
+  hostKeys: [fs.readFileSync("private")],
   banner: willowASSCI
 },function (client, info){
   console.log("New connection from " + info.ip + ":" + info.port);
@@ -72,6 +73,39 @@ const server = new ssh2.Server({
   })
 })
 server.listen('22');
+
+async function grabIntros() : Promise<{}> {
+	let files : string[] = fs.readdirSync("./texts/"); 
+	let one = files.filter(f => f.includes("one"));
+	let couple = files.filter(f => f.includes("couple"));
+	let nobody = files.filter(f => f.includes("nobody"));
+	return {nobody, one, couple};
+}
+
+const texts = grabIntros();
+function randomize(f : Array<any>) : any  { return (function () {
+	const r = Math.random() * this.length;
+	return this[Math.floor(r)];
+}).bind(f)};
+
+
+
+async function welcome() : Promise<string> {
+	let type : string;
+	switch(getConnectedSockets().length) {
+	case 1:
+		type = "nobody";
+		break;
+	case 2:
+		type = "one";
+		break;
+	default:
+		type = "couple";
+	}
+	let v = texts[type];
+	return (await fm.readFile(randomize(v))).toString();
+}
+
 
 
 export function removeSocket (socket : MySocket) {
