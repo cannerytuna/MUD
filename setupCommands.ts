@@ -15,7 +15,8 @@ const commands = {
     //
     "ws": function () {
         let len = getConnectedSockets().length
-        this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" : "" ) + " online: \x1b[0m");
+        this.send();
+        this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" : "" ) + " online:\x1b[0m");
         getConnectedSockets().map(s => s.player.name).forEach(n => this.send(n + " is online."));
         this.send(' ');
     },

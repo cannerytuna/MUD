@@ -2,7 +2,6 @@ import commandEmit from "./setupCommands.js";
 import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
 import Player from "./player.js";
 import ssh2 from "ssh2";
-import aEscape from 'ansi-escapes';
 
 
 //Wrapper class to manage net.Socket instances
@@ -48,7 +47,7 @@ export default class MySocket{
                     this.checkMessage(str);
                 bufArr = [];
             } else if (char == String.fromCharCode(127)){
-                this.socket.write(aEscape.cursorBackward() + " " + aEscape.cursorBackward());
+                this.socket.write("\x1b[D \x1b[D");
                 bufArr.pop();
             }
             else {
