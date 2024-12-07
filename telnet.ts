@@ -1,13 +1,9 @@
 import * as fs from "fs";
 import MySocket from "./mySocket.js";
 import Player from "./player.js";
-<<<<<<< HEAD
 import prompt from "./prompt.js";
 import ssh2 from "ssh2";
 import * as fm from "node:fs/promises"
-=======
-import prompt from "./prompt.js"
->>>>>>> main
 
 
 const willowASSCI : string = fs.readFileSync("willow.txt", {encoding: "utf8"});
