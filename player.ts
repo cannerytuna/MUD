@@ -14,18 +14,18 @@ class Player {
     constructor(username : string) {
         this.name = username;
         this.desc = [""];
-        this._password = '';
+        this._password = null;
         this.say = "says";
     }
 
     hasPassword() {
-        return (this._password != "");
+        return !!this._password;
     }
 
     checkPassword(attempt : string) {
         return this._password === attempt;
     }
-    setPassword(newPassword) {
+    setPassword(newPassword : string) {
         this._password = newPassword;
     }
 

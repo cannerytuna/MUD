@@ -22,8 +22,7 @@ export function getConnectedSockets () : MySocket[]{
 
 
 const server = new ssh2.Server({
-  hostKeys: [fs.readFileSync("private")],
-  banner: willowASSCI
+  hostKeys: [fs.readFileSync("private")]
 },function (client, info){
   console.log("New connection from " + info.ip + ":" + info.port);
   let username = "";
@@ -38,7 +37,14 @@ const server = new ssh2.Server({
     }
 
     if (Player.playerList[ctx.username]){
-		  if (Player.playerList[ctx.username].checkPassword(ctx.password)){
+      if (!Player.playerList[ctx.username].hasPassword()) {
+        console.log("no password yo");
+      ctx.requestChange("Enter new password: ", (newPassword) => {
+          Player.playerList[ctx.username].setPassword(newPassword);
+          username = ctx.username;
+          ctx.accept();
+      });
+      } else if (Player.playerList[ctx.username].checkPassword(ctx.password)){
             username = ctx.username;
             ctx.accept();
             return;
@@ -50,13 +56,13 @@ const server = new ssh2.Server({
     client.on("session", (accept) => {
       const session = accept();
       session.once("pty", (accept) => accept());
-      session.once("shell", (accept) => {
+      session.once("shell", async (accept) => {
         let connection : ssh2.Channel = accept();
         let socket = new MySocket(connection, info);
         socket.player = Player.playerList[username];
         connectedSockets[socket.id] = socket;
         socket.clearScreen();
-        socket.send(Buffer.from(willowASSCI));
+	socket.send(await welcome());
         socket.broadcast(socket.player.name + " has connected");
         setTimeout(() => {
           socket.broadcast(socket.player.name + " has connected");
@@ -74,19 +80,20 @@ const server = new ssh2.Server({
 })
 server.listen(22);
 
-async function grabIntros() : Promise<{}> {
+function grabIntros() : {} {
 	let files : string[] = fs.readdirSync("./texts/"); 
 	let one = files.filter(f => f.includes("one"));
 	let couple = files.filter(f => f.includes("couple"));
 	let nobody = files.filter(f => f.includes("nobody"));
 	return {nobody, one, couple};
 }
-
 const texts = grabIntros();
-function randomize(f : Array<any>) : any  { return (function () {
-	const r = Math.random() * this.length;
-	return this[Math.floor(r)];
-}).bind(f)};
+Object.keys(texts).forEach(t => texts[t] = texts[t].map((p : string) => "./texts/" + p));
+
+function randomize(f : Array<any>) : any  {
+	const r = Math.random() * f.length;
+	return f[Math.floor(r)];
+};
 
 
 
@@ -103,7 +110,7 @@ async function welcome() : Promise<string> {
 		type = "couple";
 	}
 	let v = texts[type];
-	return (await fm.readFile(randomize(v))).toString();
+	return (await fm.readFile(randomize(v))).toString().split('\n').join('\r\n');
 }
 
 
@@ -136,9 +143,15 @@ setTimeout(saveCycle, 7200000);
 async function consoleCommand() {
   let cmd = await prompt("cmd:");
   let cmdArr = cmd.split(' ');
+  let username = "";
   switch (cmdArr[0]){
+    case "delete":
+        username = await prompt("username: ");
+        delete Player.playerList[username];
+      console.log(Player.playerList);
+        break;
     case "create":
-      let username = await prompt("username: ");
+      username = await prompt("username: ");
       let player = new Player(username);
       Player.playerList[username] = player;
       console.log(Player.playerList);
