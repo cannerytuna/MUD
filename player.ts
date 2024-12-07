@@ -1,5 +1,6 @@
 import {getConnectedSockets} from "./telnet.js";
 import * as fs from "fs";
+import Room from ",/room.js";
 
 interface playerList {
     [username : string] : Player
@@ -9,13 +10,24 @@ class Player {
     private _name :string;
     private _desc :string[];
     private _password :string;
+    private currentRoom : Room;
     public say :string;
+    public roomDesc : string;
+    static playerList:playerList;
 
     constructor(username : string) {
         this.name = username;
         this.desc = [""];
         this._password = null;
         this.say = "says";
+        this.roomDesc = "";
+        this.currentRoom = Room.spawn;
+    }
+
+    move() {
+        this.currentRoom.onEveryRoom((code, room) => {
+        })
+
     }
 
     hasPassword() {
@@ -33,7 +45,10 @@ class Player {
         return getConnectedSockets().map(s => s.player);
     }
 
-    static playerList:playerList;
+
+    static get allPlayers() {
+        return Object.values(this.playerList);
+    }
 
     static loadPlayerData() {
                 fs.writeFileSync("./players.txt",
@@ -53,6 +68,21 @@ class Player {
 
     get desc():string[]{
         return this._desc;
+    }
+
+
+    static get allUsernames ():string[] {
+        return Object.keys(Player.playerList)
+    }
+    get username():string|null{
+        for (const temp of Player.allUsernames) {
+
+        if (Player.playerList[temp])
+        
+            return temp;
+        }
+        return null;
+
     }
 
     static isPlayer(str: string):boolean {
