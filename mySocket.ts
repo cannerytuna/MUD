@@ -26,6 +26,12 @@ export default class MySocket{
 
     }
 
+    connectPlayer(username : string) {
+        this.player = Player.playerList[username];
+        this.player.connect(this);
+    }
+
+
     public  initiateChat (f? : Function) {
         this.socket.removeAllListeners("data");
         //
@@ -103,7 +109,7 @@ export default class MySocket{
         this.send(sendBack);
     }
 
-    broadcast(msg){
+    broadcast(msg : string){
         getConnectedSockets().forEach(sock => {
             if (sock._id !== this._id) sock.send(msg)
         })
@@ -113,13 +119,13 @@ export default class MySocket{
         this.socket.write("\x1b[2J");
     }
 
-    send(msg?){
+    send(msg? : string){
         if (msg)
             this.socket.write(msg);
         this.socket.write("\r\n");
     }
 
-    emit(msg) {
+    emit(msg : string) {
         getConnectedSockets().forEach((s : MySocket )=> s.send(msg));
     }
 

@@ -58,20 +58,7 @@ const server = new ssh2.Server({
       session.once("pty", (accept) => accept());
       session.once("shell", async (accept) => {
         let connection : ssh2.Channel = accept();
-        let socket = new MySocket(connection, info);
-        socket.player = Player.playerList[username];
-        connectedSockets[socket.id] = socket;
-        socket.clearScreen();
-	socket.send(await welcome());
-        socket.broadcast(socket.player.name + " has connected");
-        setTimeout(() => {
-          socket.broadcast(socket.player.name + " has connected");
-          socket.initiateChat();
-          socket.broadcast(socket.player.name + " has joined the chat");
-          connectedSockets[socket.id] = socket;
-          socket.send();
-          socket.send('Connected to chat.');
-      }, 2000);
+       socketIntialization(connection, info, username); 
       });
     })
 }).on("close", () => {
@@ -79,6 +66,24 @@ const server = new ssh2.Server({
   })
 })
 server.listen(22);
+
+async function socketIntialization (connection : ssh2.Channel, info : ssh2.ClientInfo, username : string) {
+  let socket = new MySocket(connection, info);
+  socket.connectPlayer(username);
+  connectedSockets[socket.id] = socket;
+  socket.clearScreen();
+  socket.send(await welcome());
+  socket.broadcast(socket.player.name + " has connected");
+  setTimeout(() => {
+    socket.broadcast(socket.player.name + " has connected");
+    socket.initiateChat();
+    socket.broadcast(socket.player.name + " has joined the chat");
+    connectedSockets[socket.id] = socket;
+    socket.send();
+    socket.send('Connected to chat.');
+  }, 2000);
+}
+
 
 function grabIntros() : {} {
 	let files : string[] = fs.readdirSync("./texts/"); 
@@ -158,7 +163,6 @@ async function consoleCommand() {
       break;
     case "quit":
       process.exit();
-      break;
   }
 
   if(isDone)

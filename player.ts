@@ -1,6 +1,7 @@
 import {getConnectedSockets} from "./telnet.js";
 import * as fs from "fs";
-import Room from ",/room.js";
+import Room from "./room.js";
+import MySocket from "./mySocket.js";
 
 interface playerList {
     [username : string] : Player
@@ -11,6 +12,7 @@ class Player {
     private _desc :string[];
     private _password :string;
     private currentRoom : Room;
+    private socket : MySocket;
     public say :string;
     public roomDesc : string;
     static playerList:playerList;
@@ -24,10 +26,43 @@ class Player {
         this.currentRoom = Room.spawn;
     }
 
-    move() {
-        this.currentRoom.onEveryRoom((code, room) => {
-        })
+    connect(socket : MySocket) {
+        this.socket = socket;
+    }
 
+    // wrapper functions to interact with current socket.
+    send(msg : string) : Player {
+        if (!this.socket)
+            this.currentRoom.leave(this.username);
+        else {
+            this.socket.send(msg);
+        }
+        return this;
+    }
+    broadcast(msg : string) : Player {
+        if (!this.socket)
+            this.currentRoom.leave(this.username);
+        else {
+            this.socket.broadcast(msg);
+        }
+        return this;
+    }
+    emit(msg : string) : Player {
+        if (!this.socket)
+            this.currentRoom.leave(this.username);
+        else {
+            this.socket.emit(msg);
+        }
+        return this;
+    }
+    //end
+
+    moveWhere() : string[] {
+        let codes = [];
+        this.currentRoom.onEveryRoom((code) => {
+            codes.push(code);
+        });
+        return codes;
     }
 
     hasPassword() {

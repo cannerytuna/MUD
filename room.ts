@@ -17,9 +17,17 @@ export default class Room {
         this._players = [];
     }
 
-    join (player : Player) {
-        this._players.push(player);
+    broadcast (msg : string) : Room{
+        this._players.forEach(p => p.broadcast(msg));
+        return this;
     }
+
+
+    join (player : Player) : Room {
+        this._players.push(player);
+        return this;
+    }
+
 
     leave (username : string) : Room {
         this._players = this._players.filter(p => p.username != username);
@@ -32,12 +40,18 @@ export default class Room {
         return this;
     }
 
-    private onEveryRoom(f : Function) : Room {
+    onEveryRoom(f: (code?: string, room? : Room) => void) : Room {
         Object.keys(this.connectedTo).forEach(code => {
         f(code, this.connectedTo[code]);
         })
         return this;
     }
+
+    goto(code : string, username : string) : Room {
+        this.leave(username);
+        return this.connectedTo[code];
+    }
+
     
     get connected () {
         return Object.values(this.connectedTo);
