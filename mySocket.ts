@@ -1,5 +1,5 @@
 import commandEmit from "./setupCommands.js";
-import {removeSocket, getConnectedSockets, connectedSockets} from "./telnet.js";
+import {removeSocket, getConnectedSockets, connectedSockets} from "./server.js";
 import Player from "./player.js";
 import ssh2 from "ssh2";
 

@@ -6,7 +6,7 @@ interface roomSet {
 }
 
 
-export default class Room {
+class Room {
     private connectedTo : roomSet;
     public desc : string;
     private _players : Player[];
@@ -57,6 +57,18 @@ export default class Room {
         return Object.values(this.connectedTo);
     }
 
+    static setupRooms() {
+        for (const player of Player.allPlayers) {
+            let playerRoom = new Room()
+            playerRoom.connectTo(secondaryRoom, "back")
+
+            playerRoom.desc = player.roomDesc;
+
+            secondaryRoom.connectTo(playerRoom, player.name);
+            presetRooms.push(playerRoom);
+        }
+    }
+
     static get spawn() {
         return centralSpawn;
     }
@@ -72,15 +84,4 @@ secondaryRoom.connectTo(centralSpawn, "up");
 let presetRooms = [centralSpawn, secondaryRoom];
 
 
-
-
-for (const player of Player.allPlayers) {
-    let playerRoom = new Room()
-    playerRoom.connectTo(secondaryRoom, "back")
-
-    playerRoom.desc = player.roomDesc;
-
-    secondaryRoom.connectTo(playerRoom, player.name);
-    presetRooms.push(playerRoom);
-}
-
+export default Room;

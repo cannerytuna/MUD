@@ -86,8 +86,13 @@ class Player {
     }
 
     static loadPlayerData() {
-                fs.writeFileSync("./players.txt",
-                    JSON.stringify(Player.playerList));
+                fs.writeFileSync("./players.txt",JSON.stringify(Player.playerList),{encoding: "utf8"});
+    }
+    
+    static readPlayerData() {
+    let data = fs.readFileSync("./players.txt", { encoding: "utf8" })
+    Player.playerList = JSON.parse(data);
+    Object.values(Player.playerList).forEach(player => Object.setPrototypeOf(player, Player.prototype));
     }
 
     get name(): string {
@@ -125,15 +130,5 @@ class Player {
     }
 }
 
-fs.readFile("./players.txt", "utf8", (err, data) => {
-    if (err)
-        throw err;
-    if (data === ""){
-        Player.playerList = {};
-        return;
-    }
-    Player.playerList = JSON.parse(data);
-    Object.values(Player.playerList).forEach(player => Object.setPrototypeOf(player, Player.prototype));
-});
 
 export default Player;
