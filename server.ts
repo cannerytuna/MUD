@@ -27,14 +27,13 @@ let playersWhoJoinedToday = [];
 // runs at 6 am every day
 function newDay() {
   const now = new Date();
-  let milisecondsUntil : number = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0,0,0).getMilliseconds() - now.getMilliseconds();
-  if (milisecondsUntil < 0)
-    milisecondsUntil += 86400000;
+  let millisecondsUntil : number = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0,0,0).getMilliseconds() - now.getMilliseconds();
+  if (millisecondsUntil < 0)
+    millisecondsUntil += 86400000;
   setTimeout(() => {
     playersWhoJoinedToday = [];
-
     newDay();
-  }, milisecondsUntil)
+  }, millisecondsUntil)
   
 }
 newDay();
@@ -75,9 +74,9 @@ const server = new ssh2.Server({
     client.on("session", (accept) => {
       const session = accept();
       session.once("pty", (accept) => accept());
-      session.once("shell", async (accept) => {
+      session.once("shell", (accept) => {
         let connection : ssh2.Channel = accept();
-       socketIntialization(connection, info, username); 
+        socketInitialization(connection, info, username);
       });
     })
 }).on("close", () => {
@@ -86,21 +85,20 @@ const server = new ssh2.Server({
 })
 server.listen(22);
 
-async function socketIntialization (connection : ssh2.Channel, info : ssh2.ClientInfo, username : string) {
+async function socketInitialization (connection : ssh2.Channel, info : ssh2.ClientInfo, username : string) {
   let socket = new MySocket(connection, info);
   socket.connectPlayer(username);
   connectedSockets[socket.id] = socket;
   socket.clearScreen();
   socket.send(await welcome(socket.player));
-  socket.broadcast(socket.player.name + " has connected");
+  socket.broadcast("You feel a disturbance.");
   setTimeout(() => {
-    socket.broadcast(socket.player.name + " has connected");
     socket.initiateChat();
-    socket.broadcast(socket.player.name + " has joined the chat");
+    socket.broadcast(socket.player.name + " is in the treehouse.");
     connectedSockets[socket.id] = socket;
     socket.send();
-    socket.send('Connected to chat.');
-  }, 2000);
+    socket.send('You are here with the willow.');
+  }, 5000);
 }
 
 
@@ -114,10 +112,10 @@ function grabIntros() : {} {
 const texts = grabIntros();
 Object.keys(texts).forEach(t => texts[t] = texts[t].map((p : string) => "./texts/" + p));
 
-function randomize(f : Array<any>) : any  {
+export function randomize(f : Array<any>) : any  {
 	const r = Math.random() * f.length;
 	return f[Math.floor(r)];
-};
+}
 
 
 

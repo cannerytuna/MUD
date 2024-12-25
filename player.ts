@@ -1,4 +1,4 @@
-import {getConnectedSockets} from "./telnet.js";
+import {getConnectedSockets, randomize} from "./server.js";
 import * as fs from "fs";
 import Room from "./room.js";
 import MySocket from "./mySocket.js";
@@ -11,8 +11,9 @@ class Player {
     private _name :string;
     private _desc :string[];
     private _password :string;
-    private currentRoom : Room;
     private socket : MySocket;
+
+    public currentRoom : Room;
     public say :string;
     public roomDesc : string;
     static playerList:playerList;
@@ -30,20 +31,16 @@ class Player {
         this.socket = socket;
     }
 
+    sendInRoom(msg : string) {
+        this.currentRoom.broadcast(msg);
+    }
+
     // wrapper functions to interact with current socket.
     send(msg : string) : Player {
         if (!this.socket)
             this.currentRoom.leave(this.username);
         else {
             this.socket.send(msg);
-        }
-        return this;
-    }
-    broadcast(msg : string) : Player {
-        if (!this.socket)
-            this.currentRoom.leave(this.username);
-        else {
-            this.socket.broadcast(msg);
         }
         return this;
     }
@@ -57,12 +54,12 @@ class Player {
     }
     //end
 
-    moveWhere() : string[] {
-        let codes = [];
-        this.currentRoom.onEveryRoom((code) => {
-            codes.push(code);
+    moveWhere() : {[code : string] : Room} {
+        let rooms : {[code : string] : Room} = {}
+        this.currentRoom.onEveryRoom((code, room) => {
+            rooms[code] = room;
         });
-        return codes;
+        return rooms;
     }
 
     hasPassword() {
@@ -123,6 +120,16 @@ class Player {
         }
         return null;
 
+    }
+
+    goto(room: Room, code: string) : this {
+        const prev = this.currentRoom;
+        room.join(this);
+        prev.leave(this.username);
+        prev.broadcast(this.name + " " + randomize(["has left to go somewhere else.", "went somewhere else.", "seems to have disappeared elsewhere.", "has gone elsewhere.", "disappeared without you noticing."]) + `  [;goto ${code}]`);
+        this.currentRoom = room;
+        this.currentRoom.broadcast(this.name + " " + randomize(["walks in,", "glides near you,", "greets you as they enter your bubble.", "waves as they approach,", "is here.", "invades your space."]), this);
+        return this;
     }
 
     static isPlayer(str: string):boolean {

@@ -71,6 +71,7 @@ export default class MySocket{
         return this._id;
     }
 
+
     checkMessage(msg :string) {
         msg = msg.trim();
 
@@ -105,7 +106,7 @@ export default class MySocket{
                 sendBack = 'You said, "' + msg + '"';
         }
 
-        this.broadcast(result);
+        this.player.sendInRoom(result);
         this.send(sendBack);
     }
 
@@ -121,6 +122,8 @@ export default class MySocket{
 
     send(msg? : string){
         if (msg)
+            if (msg.includes("\n"))
+                msg = msg.split("\n").join("\r\n");
             this.socket.write(msg);
         this.socket.write("\r\n");
     }
