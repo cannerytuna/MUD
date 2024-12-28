@@ -1,3 +1,12 @@
 /node_modules
 /telnet.js
 /telnet.js.map
+.DS_Store
+.idea/
+mySocket.js
+player.js
+players.txt
+room.js
+server.js
+setupCommands.js
+texts/
