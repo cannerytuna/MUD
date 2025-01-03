@@ -25,6 +25,24 @@ class Player {
         this.say = "says";
         this.roomDesc = "";
         this.currentRoom = Room.spawn;
+        Room.newPlayerRoom(this);
+    }
+
+    rename(newName : string) {
+        let room = Room.offSpawn.go(this.name);
+        Room.offSpawn.disconnectRoom(this.name);
+        Room.offSpawn.connectTo(room, newName);
+        this.name = newName;
+    }
+
+    encapsulate () : Player {
+        return Object.setPrototypeOf({
+            name : this.name,
+            desc : this.desc,
+            roomDesc : this.roomDesc,
+            say : this.say,
+            _password : this._password
+        }, Player);
     }
 
     connect(socket : MySocket) {
@@ -82,14 +100,22 @@ class Player {
         return Object.values(this.playerList);
     }
 
+    static encapsulatePlayers() : playerList{
+        let players = {};
+        for (let key of Object.keys(this.playerList)) {
+            players[key] = this.playerList[key].encapsulate();
+        }
+        return players;
+    }
+
     static loadPlayerData() {
-                fs.writeFileSync("./players.txt",JSON.stringify(Player.playerList),{encoding: "utf8"});
+                fs.writeFileSync("./players.txt",JSON.stringify(Player.encapsulatePlayers()),{encoding: "utf8"});
     }
     
     static readPlayerData() {
     let data = fs.readFileSync("./players.txt", { encoding: "utf8" })
     Player.playerList = JSON.parse(data);
-    Object.values(Player.playerList).forEach(player => Object.setPrototypeOf(player, Player.prototype));
+    Object.values(Player.playerList).forEach(player => Object.setPrototypeOf({...player, currentRoom : Room.spawn}, Player.prototype));
     }
 
     get name(): string {

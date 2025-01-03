@@ -1,6 +1,4 @@
 /node_modules
-/telnet.js
-/telnet.js.map
 .DS_Store
 .idea/
 mySocket.js
@@ -10,3 +8,4 @@ room.js
 server.js
 setupCommands.js
 texts/
+private

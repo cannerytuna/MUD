@@ -28,6 +28,17 @@ class Room {
     }
 
 
+    //returns room that is connected with code, creates a new one if it doesn't exist
+    go (code : string, roomDesc = "") : Room {
+        if (this.connectedTo[code])
+            return this.connectedTo[code]
+        let newRoom = new Room({"back": this});
+        newRoom.desc = roomDesc;
+        this.connectTo(newRoom, code);
+        return newRoom;
+    }
+
+
     join (player : Player) : Room {
         this.broadcast(`You see ${player.name} walk in.`);
         this._players.push(player);
@@ -40,6 +51,10 @@ class Room {
         return this;
     }
 
+
+    disconnectRoom (code : string) {
+        delete this.connectedTo[code];
+    }
 
     connectTo(room : Room, code : string): Room {
         this.connectedTo[code] = room;
@@ -67,8 +82,7 @@ class Room {
 
     static setupRooms() {
         for (const player of Player.allPlayers) {
-            let playerRoom = new Room()
-            playerRoom.connectTo(secondaryRoom, "back")
+            let playerRoom = new Room({"back" : secondaryRoom})
 
             playerRoom.desc = player.roomDesc;
 
@@ -80,8 +94,24 @@ class Room {
     static get spawn() {
         return centralSpawn;
     }
-        
 
+    static get offSpawn() {
+        return secondaryRoom;
+    }
+
+
+    static newPlayerRoom(p: Player) : void {
+        let playerRoom = new Room({"back": secondaryRoom});
+
+        playerRoom.desc = p.roomDesc;
+
+        secondaryRoom.connectTo(playerRoom, p.name);
+        presetRooms.push(playerRoom);
+    }
+
+    static allRooms() : Room[] {
+        return presetRooms;
+    }
 }
 
 const centralSpawn = new Room();

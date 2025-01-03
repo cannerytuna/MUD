@@ -27,7 +27,7 @@ let playersWhoJoinedToday = [];
 // runs at 6 am every day
 function newDay() {
   const now = new Date();
-  let millisecondsUntil : number = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0,0,0).getMilliseconds() - now.getMilliseconds();
+  let millisecondsUntil : number = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 6, 0,0,0).getMilliseconds() - now.getMilliseconds();
   if (millisecondsUntil < 0)
     millisecondsUntil += 86400000;
   setTimeout(() => {
@@ -54,15 +54,16 @@ const server = new ssh2.Server({
       return;
     }
 
-    if (Player.playerList[ctx.username]){
-      if (!Player.playerList[ctx.username].hasPassword()) {
-        console.log("no password yo");
-      ctx.requestChange("Enter new password: ", (newPassword) => {
-          Player.playerList[ctx.username].setPassword(newPassword);
-          username = ctx.username;
-          ctx.accept();
-      });
-      } else if (Player.playerList[ctx.username].checkPassword(ctx.password)){
+    if (Player.isPlayer(ctx.username)){
+      let p = Player.playerList[ctx.username];
+      if (!p.hasPassword()) {
+        console.log(ctx.username + " does not have a password, prompting reset.");
+        ctx.requestChange("Enter new password: ", (newPassword) => {
+            p.setPassword(newPassword);
+            username = ctx.username;
+            ctx.accept();
+        });
+      } else if (p.checkPassword(ctx.password)){
             username = ctx.username;
             ctx.accept();
             return;

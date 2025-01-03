@@ -4,18 +4,27 @@ import {EventEmitter} from "events";
 import Player from "./player.js";
 import Room from "./room";
 
-
-
-
-const editableComponents = [
-    'name', 'desc', 'say'
-]
-
-
-type Command = (msg : string) => void;
+type Command = (this: MySocket, msg : string) => void;
 interface FunctionList<T> {
     [code : string] : T;
 }
+
+
+
+const editCommands : FunctionList<(this : MySocket, text : string, allText : string[]) => void> = {
+    desc : function () {
+        editDescMode.bind(this)();
+    },
+    name : function (_, arr) {
+        this.player.rename(arr.join(' '));
+    },
+    say : function (text) {
+        this.player.say = text
+    }
+}
+
+
+
 
 let moveTexts = ["Say something.", "Go say hi,", "Dudes of wise, step forward.", "Come along now, step forward,", "Left up to your imagination,", "Is it too many, or too little amount of people?", "Can we handle a few more people?", "Should we watch what we say?", "Get out there, champion.", "Make some sound!", "You shouldn't dawdle over if anyone believes anything.", "Force some moments.", "Make art.", "Whats your favorite stuffed animal?", "Lets start a Littlest Pet Shop rp campaign.","Find a trampoline.", "Make some time if you can.", "Just be whatever, we encourage you to be whoever you want to be.", "Jokes are okay. sometimes.", "We love you.", "The willow is quiet.", "Who haven't you've really had a conversation with.", "", "Loosen up a little, chill with us,", "You aren't obligated to learn birthdays, and attend plans, but it really shows you care, and I would love that.", "Tell someone if they've done something wrong, don't let us embarrass ourselves.", "The world is so crazy right now, why would you need social relationships in your life?", "What are we leaving behind?", "We are capable of love. We can give love.", "Fruits. Eat some fruits.", "Can we really improve reality without feeling awful doing it?", "Nostalgia is okay for reflection, use it to make yourself better.", "Lets be grave robbers.. out of curiosity.", "Tell your friends you love them casually, as you may not just like someone.", "We are all kind of annoying, its okay be patient."];
 
@@ -25,9 +34,9 @@ const commands: FunctionList<Command> = {
     // ;ws
     // ;set name james
     //
-    "go": function (msg) {
+    go: function (msg) {
         msg  = msg.trim().toLowerCase();
-        this.player.currentRoom = this.player.currentRoom || this.Room.spawn;
+        this.player.currentRoom = this.player.currentRoom || Room.spawn;
         let possibleRooms : {[code : string] : Room} = this.player.moveWhere()
         let targetRoom : Room;
         if (possibleRooms[msg])
@@ -48,25 +57,20 @@ const commands: FunctionList<Command> = {
 
 
     },
-    "ws": function () {
+    ws: function () {
         let len = getConnectedSockets().length
         this.send();
         this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" : "" ) + " online:\x1b[0m");
         getConnectedSockets().map(s => s.player.name).forEach(n => this.send(n + " is online."));
         this.send(' ');
     },
-    "set": function (msg) {
+    set: function (msg) {
         let mArr = msg.split(' ');
-        if (editableComponents.includes(mArr[0])) {
-            if (mArr[0] == "desc") {
-                editDescMode.bind(this)();
-            } else {
-                this.player[mArr[0]] = mArr.slice(1, mArr.length).join(' ');
-                this.send("Set " + mArr[0].toUpperCase() + " to " + mArr[1]);
-            }
+        if (Object.keys(editCommands).includes(mArr[0])) {
+            editCommands[mArr[0]].bind(this)(mArr[1], mArr.slice(1, mArr.length));
         } else this.send("You can't set that property!");
     },
-    "help": function (msg :string) {
+    help: function (msg :string) {
         let dA = 5; //distance apart
         let split = 3;
 
@@ -112,7 +116,7 @@ const commands: FunctionList<Command> = {
 
         this.send("\x1b[0m");
     },
-    "look" : function (this: MySocket, msg) {
+    look: function (msg) {
         if (msg == "") {
             let players = this.player.currentRoom.allNames.filter(n => n != this.player.name);
             let len = players.length
@@ -144,10 +148,10 @@ const commands: FunctionList<Command> = {
         }
         this.send("That is not a user.");
     },
-    "clear":function () {
+    clear: function () {
         this.clearScreen();
     },
-    "quit": async function () {
+    quit: async function () {
         this.send("Goodbye!");
         await this.close();
     }
@@ -155,14 +159,14 @@ const commands: FunctionList<Command> = {
 
 const listCommands = Object.keys(commands).sort((a, b) => a.localeCompare(b));
 const help: {} = {
-    "quit":"Leaves the server.",
-    "clear":"Clears screen.",
-    "set":`Sets a property.\r\nProperties you can modify include:\r\n\x1b[34m${editableComponents.join('\x1b[0m, \x1b[34m')}\x1b[0m.`,
-    "ws":"Lists all active users."
+    quit:"Leaves the server.",
+    clear:"Clears screen.",
+    set:`Sets a property.\r\nProperties you can modify include:\r\n\x1b[34m${Object.keys(editCommands).join('\x1b[0m, \x1b[34m')}\x1b[0m.`,
+    ws:"Lists all active users."
 }
 
 
-async function editDescMode() {
+async function editDescMode(this : MySocket) {
     let desc :string[] = [];
     this.send("====Edit Mode====");
 
