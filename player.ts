@@ -85,6 +85,7 @@ class Player {
     }
 
     checkPassword(attempt : string) {
+        console.log(this.username + " has been attempted to reach by: " + attempt);
         return this._password === attempt;
     }
     setPassword(newPassword : string) {

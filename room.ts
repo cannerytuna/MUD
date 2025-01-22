@@ -115,6 +115,7 @@ class Room {
 }
 
 const centralSpawn = new Room();
+centralSpawn.desc = readFileSync("texts/up.txt", {encoding: "utf8"});
 const secondaryRoom = new Room();
 secondaryRoom.desc = readFileSync("texts/down.txt", {encoding: "utf-8"});
 centralSpawn.connectTo(secondaryRoom, "down");

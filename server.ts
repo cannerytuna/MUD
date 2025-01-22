@@ -6,6 +6,12 @@ import prompt from "./prompt.js";
 import ssh2 from "ssh2";
 import * as fm from "node:fs/promises"
 
+let port = 22;
+
+if (process.argv[2]) {
+  port = Number(process.argv[2]);
+}
+
 
 const willowASSCI : string = fs.readFileSync("willow.txt", {encoding: "utf8"});
 console.log(willowASSCI);
@@ -34,7 +40,7 @@ function newDay() {
     playersWhoJoinedToday = [];
     newDay();
   }, millisecondsUntil)
-  
+
 }
 newDay();
 
@@ -84,7 +90,7 @@ const server = new ssh2.Server({
     console.log('Client ' + info.ip + ":" + info.port + ' disconnected');
   })
 })
-server.listen(22);
+server.listen(port);
 
 async function socketInitialization (connection : ssh2.Channel, info : ssh2.ClientInfo, username : string) {
   let socket = new MySocket(connection, info);
@@ -104,7 +110,7 @@ async function socketInitialization (connection : ssh2.Channel, info : ssh2.Clie
 
 
 function grabIntros() : {} {
-	let files : string[] = fs.readdirSync("./texts/"); 
+	let files : string[] = fs.readdirSync("./texts/");
 	let one = files.filter(f => f.includes("one"));
 	let couple = files.filter(f => f.includes("couple"));
 	let nobody = files.filter(f => f.includes("nobody"));
@@ -139,25 +145,12 @@ async function welcome(p : Player) : Promise<string> {
     )
   }
 
-	let v = texts[type];
+  let v = texts[type];
   let str = (await fm.readFile(randomize(v), {encoding: "utf8"}));
-  let words = str.split(" ");
-  let buffer = [];
-  let result = "";
-  for (let i = 1; i < words.length; i++) {
-      buffer.push(words[i - 1]);
-      if (buffer.join(' ').length + words[i].length >=  50) {
-        result += buffer.join(" ") + "\n\r";
-      }
-  }
-  if (buffer.length != 0) {
-    result += buffer.join(" ") + " " + words[words.length - 1] + "\n\r";
-  } else {
-    result += words[words.length - 1];
-  }
-
+  console.log(str);
   playersWhoJoinedToday.push(p.username);
-	return willowASSCI + "\n\r\n\r"  + result; 
+
+  return willowASSCI + "\n\r\n\r"  + str;
 }
 
 

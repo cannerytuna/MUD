@@ -2,7 +2,7 @@ import MySocket from "./mySocket.js";
 import {getConnectedSockets, randomize} from "./server.js";
 import {EventEmitter} from "events";
 import Player from "./player.js";
-import Room from "./room";
+import Room from "./room.js";
 
 type Command = (this: MySocket, msg : string) => void;
 interface FunctionList<T> {
@@ -46,11 +46,11 @@ const commands: FunctionList<Command> = {
             this.send();
             this.send(targetRoom.desc);
             this.send();
-            this.send(
-                `There ${targetRoom.manyPlayers > 1 ? "are some people" : "is someone"} here. ${targetRoom.manyPlayers != 0 ? 
-                    randomize(moveTexts) : ""}`
-            );
+            this.send(targetRoom.manyPlayers != 0 ?
+                `There ${targetRoom.manyPlayers > 1 ? "are some people" : "is someone"} here. 
+                ${randomize(moveTexts)} ` : "");
             this.player.goto(targetRoom, msg);
+
         } else {
             this.send("There's nothing there.");
         }
@@ -119,7 +119,9 @@ const commands: FunctionList<Command> = {
     look: function (msg) {
         if (msg == "") {
             let players = this.player.currentRoom.allNames.filter(n => n != this.player.name);
-            let len = players.length
+            let len = players.length;
+            this.send();
+            this.send(this.player.currentRoom.desc);
             this.send();
             this.send(`\x1b[31;1;4m${len <= 0 ? "There is no one around you." : (len == 1 ? "There is someone here," : "There is some people here,")}\x1b[0m`);
             players.forEach(n => this.send(n + " is here."));
