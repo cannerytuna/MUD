@@ -6,6 +6,9 @@ import prompt from "./prompt.js";
 import ssh2 from "ssh2";
 import * as fm from "node:fs/promises"
 
+
+
+
 let port = 22;
 
 if (process.argv[2]) {
@@ -19,7 +22,7 @@ interface socketMap {
   [id : string] : MySocket;
 }
 
-Player.readPlayerData();
+Player.loadPlayerData();
 Room.setupRooms();
 
 
@@ -61,19 +64,16 @@ const server = new ssh2.Server({
     }
 
     if (Player.isPlayer(ctx.username)){
+      username = ctx.username;
       let p = Player.playerList[ctx.username];
       if (!p.hasPassword()) {
         console.log(ctx.username + " does not have a password, prompting reset.");
-        ctx.requestChange("Enter new password: ", (newPassword) => {
-            p.setPassword(newPassword);
-            username = ctx.username;
-            ctx.accept();
-        });
+        ctx.accept();
+        return;
       } else if (p.checkPassword(ctx.password)){
-            username = ctx.username;
-            ctx.accept();
-            return;
-          }
+        ctx.accept();
+        return;
+      }
 	}
 	ctx.reject();
   }).on("ready", () => {
@@ -93,10 +93,37 @@ const server = new ssh2.Server({
 server.listen(port);
 
 async function socketInitialization (connection : ssh2.Channel, info : ssh2.ClientInfo, username : string) {
+  console.log(username);
   let socket = new MySocket(connection, info);
   socket.connectPlayer(username);
   connectedSockets[socket.id] = socket;
   socket.clearScreen();
+
+  if (!socket.player.hasPassword()) {
+    let password : string  = await new Promise((resolve) => {
+      let count = 0;
+      let newPass = null;
+      socket.send("New password: ");
+      socket.initiateChat( (msg: string) => {
+        if (count == 1 && msg == newPass) {
+          resolve(newPass);
+        }
+        count++;
+        switch (count) {
+          case 1:
+            newPass = msg;
+            socket.send("Repeat password: ");
+            break;
+          default:
+            socket.send("Something wrong occurred. New password: ");
+            count = 0;
+        }
+      });
+    });
+    socket.player.setPassword(password);
+    Player.savePlayerData();
+  }
+
   socket.send(await welcome(socket.player));
   socket.broadcast("You feel a disturbance.");
   setTimeout(() => {
@@ -165,7 +192,7 @@ process.on('exit', async () => {
   for (const socket of getConnectedSockets()) {
     await socket.close();
   }
-  Player.loadPlayerData();
+  Player.savePlayerData();
   server.close();
   console.log("Program exited.");
 });
@@ -177,7 +204,7 @@ let isDone = false;
 async function saveCycle() {
   if(isDone)
     return;
-  Player.loadPlayerData();
+  Player.savePlayerData();
   setTimeout(saveCycle, 7200000);
 }
 setTimeout(saveCycle, 7200000);
@@ -197,6 +224,9 @@ async function consoleCommand() {
       let player = new Player(username);
       Player.playerList[username] = player;
       console.log(Player.playerList);
+      break;
+    case "save":
+      Player.savePlayerData();
       break;
     case "quit":
       process.exit();

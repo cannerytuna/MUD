@@ -3,25 +3,22 @@ import * as fs from "fs";
 import Room from "./room.js";
 import MySocket from "./mySocket.js";
 
-interface playerList {
-    [username : string] : Player
-}
-
 class Player {
     private _name :string;
     private _desc :string[];
     private _password :string;
-    private socket : MySocket;
+    private _socket : MySocket;
 
     public currentRoom : Room;
     public say :string;
     public roomDesc : string;
-    static playerList:playerList;
+    static playerList : {[key:string]: Player} = {};
 
     constructor(username : string) {
-        this.name = username;
-        this.desc = [""];
-        this._password = null;
+        this._name = username;
+        this._desc = [""];
+        this._socket = null;
+        this._password = "";
         this.say = "says";
         this.roomDesc = "";
         this.currentRoom = Room.spawn;
@@ -32,21 +29,22 @@ class Player {
         let room = Room.offSpawn.go(this.name);
         Room.offSpawn.disconnectRoom(this.name);
         Room.offSpawn.connectTo(room, newName);
-        this.name = newName;
+        this._name = newName;
+        Player.savePlayerData();
     }
 
-    encapsulate () : Player {
-        return Object.setPrototypeOf({
-            name : this.name,
-            desc : this.desc,
-            roomDesc : this.roomDesc,
-            say : this.say,
-            _password : this._password
-        }, Player);
+    encapsulate () : {} {
+        return {
+            _name: this._name,
+            _desc: this._desc,
+            roomDesc: this.roomDesc,
+            say: this.say,
+            _password: this._password
+        };
     }
 
     connect(socket : MySocket) {
-        this.socket = socket;
+        this._socket = socket;
     }
 
     sendInRoom(msg : string) {
@@ -55,18 +53,18 @@ class Player {
 
     // wrapper functions to interact with current socket.
     send(msg : string) : Player {
-        if (!this.socket)
+        if (!this._socket)
             this.currentRoom.leave(this.username);
         else {
-            this.socket.send(msg);
+            this._socket.send(msg);
         }
         return this;
     }
     emit(msg : string) : Player {
-        if (!this.socket)
+        if (!this._socket)
             this.currentRoom.leave(this.username);
         else {
-            this.socket.emit(msg);
+            this._socket.emit(msg);
         }
         return this;
     }
@@ -81,6 +79,9 @@ class Player {
     }
 
     hasPassword() {
+        if (this._password === "") {
+            return false;
+        }
         return !!this._password;
     }
 
@@ -98,25 +99,31 @@ class Player {
 
 
     static get allPlayers() {
-        return Object.values(this.playerList);
+        return Object.values(Player.playerList);
     }
 
-    static encapsulatePlayers() : playerList{
+    static encapsulatePlayers() : {} {
         let players = {};
-        for (let key of Object.keys(this.playerList)) {
-            players[key] = this.playerList[key].encapsulate();
+        for (let key of Object.keys(Player.playerList)) {
+            players[key] = Player.playerList[key].encapsulate();
         }
         return players;
     }
 
-    static loadPlayerData() {
+    static savePlayerData() {
                 fs.writeFileSync("./players.txt",JSON.stringify(Player.encapsulatePlayers()),{encoding: "utf8"});
     }
     
-    static readPlayerData() {
-    let data = fs.readFileSync("./players.txt", { encoding: "utf8" })
-    Player.playerList = JSON.parse(data);
-    Object.values(Player.playerList).forEach(player => Object.setPrototypeOf({...player, currentRoom : Room.spawn}, Player.prototype));
+    static loadPlayerData() {
+        let data = fs.readFileSync("./players.txt", { encoding: "utf8" });
+        let obj = JSON.parse(data);
+        for (let key of Object.keys(obj)) {
+            let player = new Player(key);
+            for (let key2 of Object.keys(obj[key])) {
+                player[key2] = obj[key][key2];
+            }
+            Player.playerList[key] = player;
+        }
     }
 
     get name(): string {
@@ -128,6 +135,7 @@ class Player {
     }
     set desc(arr :string[]){
         this._desc = arr;
+        Player.savePlayerData();
     }
 
     get desc():string[]{

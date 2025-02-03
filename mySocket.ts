@@ -20,7 +20,11 @@ export default class MySocket{
             this._id = MySocket.assignId();
 
         socket.on('close', async () => {
-            await this.close();
+            console.log("Lost connection to " + this.info.ip)
+            if (this.player) {
+                this.broadcast(this.player.name + " has left.");
+                removeSocket(this);
+            }
         })
 
 
@@ -134,13 +138,9 @@ export default class MySocket{
     }
 
     async close() {
-        if (!this.socket.readableEnded)
+        if (!this.socket.readableEnded) {
             this.socket.end();
-        if (this.player){
-            this.broadcast(this.player.name + " has left.");
-            removeSocket(this);
         }
-        console.log("Lost connection to " + this.info.ip);
     }
 }
 

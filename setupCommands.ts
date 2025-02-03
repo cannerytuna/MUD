@@ -174,10 +174,7 @@ async function editDescMode(this : MySocket) {
 
     let currentIndex = 0;
 
-
-    this.checkMessage = (msg : string) => {
-        msg = msg.trim();
-
+    this.initiateChat((msg : string) => {
         if (msg.charAt(0) == '.'){
             let command = msg.split(" ");
             let arg = Number(command[1]) - 1;
@@ -223,7 +220,7 @@ async function editDescMode(this : MySocket) {
         }
         currentIndex += 1;
         update();
-    };
+    });
 
     const update = () => {
         this.send("\x1b[32m<inserting at line " + (currentIndex + 1) + " >\x1b[0m");
