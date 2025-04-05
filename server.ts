@@ -8,35 +8,36 @@ import * as fm from "node:fs/promises"
 
 
 
-
+// Setting port for testing purposes
 let port = 22;
-
 if (process.argv[2]) {
   port = Number(process.argv[2]);
 }
 
-
-const willowASSCI : string = fs.readFileSync("willow.txt", {encoding: "utf8"});
+// Little logo for start in memory
+const willowASSCI :string = fs.readFileSync("willow.txt", {encoding: "utf8"});
 console.log(willowASSCI);
-interface socketMap {
-  [id : string] : MySocket;
-}
 
+
+
+//Initialize variables from previous sessions
 Player.loadPlayerData();
 Room.setupRooms();
 
-
-// Convert this to connectedPlayers sometime soon and move away from "sockets"
+//Map of all connected sessions
+interface socketMap {
+  [id :string] :MySocket;
+}
 export const connectedSockets: socketMap = {};
-export function getConnectedSockets () : MySocket[]{
+export function getConnectedSockets () :MySocket[]{
   return Object.values(connectedSockets);
 }
-let playersWhoJoinedToday = [];
+let playersWhoJoinedToday :string[] = [];
 
 // runs at 6 am every day
 function newDay() {
   const now = new Date();
-  let millisecondsUntil : number = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 6, 0,0,0).getMilliseconds() - now.getMilliseconds();
+  let millisecondsUntil :number = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 6, 0,0,0).getMilliseconds() - now.getMilliseconds();
   if (millisecondsUntil < 0)
     millisecondsUntil += 86400000;
   setTimeout(() => {
@@ -82,7 +83,7 @@ const server = new ssh2.Server({
       const session = accept();
       session.once("pty", (accept) => accept());
       session.once("shell", (accept) => {
-        let connection : ssh2.Channel = accept();
+        let connection :ssh2.Channel = accept();
         socketInitialization(connection, info, username);
       });
     })
@@ -92,7 +93,7 @@ const server = new ssh2.Server({
 })
 server.listen(port);
 
-async function socketInitialization (connection : ssh2.Channel, info : ssh2.ClientInfo, username : string) {
+async function socketInitialization (connection :ssh2.Channel, info :ssh2.ClientInfo, username :string) {
   console.log(username);
   let socket = new MySocket(connection, info);
   socket.connectPlayer(username);
@@ -100,9 +101,9 @@ async function socketInitialization (connection : ssh2.Channel, info : ssh2.Clie
   socket.clearScreen();
 
   if (!socket.player.hasPassword()) {
-    let password : string  = await new Promise((resolve) => {
+    let password :string  = await new Promise((resolve) => {
       let count = 0;
-      let newPass = null;
+      let newPass :string = null;
       socket.send("New password: ");
       socket.initiateChat( (msg: string) => {
         if (count == 1 && msg == newPass) {
@@ -132,57 +133,86 @@ async function socketInitialization (connection : ssh2.Channel, info : ssh2.Clie
     connectedSockets[socket.id] = socket;
     socket.send();
     socket.send('You are here with the willow.');
-  }, 5000);
+    socket.send(Room.spawn.desc)
+  }, 1); //fix
 }
 
 
-function grabIntros() : {} {
-	let files : string[] = fs.readdirSync("./texts/");
+function grabIntros() :{} {
+	let files :string[] = fs.readdirSync("./texts/");
 	let one = files.filter(f => f.includes("one"));
 	let couple = files.filter(f => f.includes("couple"));
 	let nobody = files.filter(f => f.includes("nobody"));
 	return {nobody, one, couple};
 }
 const texts = grabIntros();
-Object.keys(texts).forEach(t => texts[t] = texts[t].map((p : string) => "./texts/" + p));
+Object.keys(texts).forEach(t => texts[t] = texts[t].map((p :string) => "./texts/" + p));
 
-export function randomize(f : Array<any>) : any  {
+export function randomize(f :Array<any>) :any  {
 	const r = Math.random() * f.length;
 	return f[Math.floor(r)];
 }
 
 
+function returnComebackMsg() :string {
 
-async function welcome(p : Player) : Promise<string> {
-	let type : string;
-	switch(getConnectedSockets().length) {
-	case 1:
-		type = "nobody";
-		break;
-	case 2:
-		type = "one";
-		break;
-	default:
-		type = "couple";
-	}
+}
 
-  if (p.username in playersWhoJoinedToday) {
-    return (
-      `You've tuned back in. ${type == "couple" ? "All of your friends are here." : (type == "one" ? "Someone is here." : "You are by yourself.")}`
-    )
-  }
 
-  let v = texts[type];
-  let str = (await fm.readFile(randomize(v), {encoding: "utf8"}));
-  console.log(str);
-  playersWhoJoinedToday.push(p.username);
+async function welcome(p :Player) :Promise<string> {
+    let str :string = "";
+    if (!p.ASCIIdisabled)
+      str = willowASSCI +"\n\r\n\r"
 
-  return willowASSCI + "\n\r\n\r"  + str;
+    if (!p.hasJoined) {
+      str+= await fm.readFile("./texts/welcome");
+
+      str += "\n\r\n\r";
+
+      switch(getConnectedSockets().length) {
+        case 1:
+          str += await fm.readFile("./texts/welcome1");
+          break;
+        case 2:
+          str += await fm.readFile("./texts/welcome2");
+          break;
+        default:
+          str += await fm.readFile("./texts/welcome3");
+      }
+      return str;
+    }
+
+
+
+    let type :string;
+    switch(getConnectedSockets().length) {
+      case 1:
+        type = "nobody";
+        break;
+      case 2:
+        type = "one";
+        break;
+      default:
+        type = "couple";
+    }
+    if (playersWhoJoinedToday.some(x => x == p.username)) {
+      return (
+        `You've tuned back in. ${type == "couple" ? "All of your friends are here." :(type == "one" ? "Someone is here." :"You are by yourself.")}`
+      )
+    }
+    console.log(playersWhoJoinedToday);
+
+    let v = texts[type];
+    str += (await fm.readFile(randomize(v), {encoding: "utf8"}));
+    playersWhoJoinedToday.push(p.username);
+
+
+    return str;
 }
 
 
 
-export function removeSocket (socket : MySocket) {
+export function removeSocket (socket :MySocket) {
   delete connectedSockets[socket.id];
 }
 

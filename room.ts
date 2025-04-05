@@ -3,23 +3,25 @@ import Player from "./player.js";
 
 
 interface roomSet {
-    [code : string] : Room
+    [code :string] :Room
 }
 
 
 class Room {
-    private readonly connectedTo : roomSet;
-    public desc : string;
-    private _players : Player[];
+    private readonly connectedTo :roomSet;
+    public desc :string;
+    private _players :Player[];
+    public isPlayerRoom :boolean;
 
-    constructor(arg : roomSet = {}) {
+    constructor(arg :roomSet = {}) {
         this.desc = "";
         this.connectedTo = arg;
         this._players = [];
+        this.isPlayerRoom = false;
     }
 
     // pl? -- dont send to player
-    broadcast (msg : string, pl? : Player) : Room {
+    broadcast (msg :string, pl? :Player) :Room {
         let p = this._players;
         if (pl)
             p = this._players.filter(p => p.username != pl.username);
@@ -29,7 +31,7 @@ class Room {
 
 
     //returns room that is connected with code, creates a new one if it doesn't exist
-    go (code : string, roomDesc = "") : Room {
+    go (code :string, roomDesc = "") :Room {
         if (this.connectedTo[code])
             return this.connectedTo[code]
         let newRoom = new Room({"back": this});
@@ -39,29 +41,29 @@ class Room {
     }
 
 
-    join (player : Player) : Room {
+    join (player :Player) :Room {
         this.broadcast(`You see ${player.name} walk in.`);
         this._players.push(player);
         return this;
     }
 
 
-    leave (username : string) : Room {
+    leave (username :string) :Room {
         this._players = this._players.filter(p => p.username != username);
         return this;
     }
 
 
-    disconnectRoom (code : string) {
+    disconnectRoom (code :string) {
         delete this.connectedTo[code];
     }
 
-    connectTo(room : Room, code : string): Room {
+    connectTo(room :Room, code :string): Room {
         this.connectedTo[code] = room;
         return this;
     }
 
-    onEveryRoom(f: (code?: string, room? : Room) => void) : Room {
+    onEveryRoom(f: (code?: string, room? :Room) => void) :Room {
         Object.keys(this.connectedTo).forEach(code => {
         f(code, this.connectedTo[code]);
         })
@@ -77,12 +79,13 @@ class Room {
     }
 
     get manyPlayers () {
-        return this.connected.length;
+        return this._players.length;
     }
 
     static setupRooms() {
         for (const player of Player.allPlayers) {
-            let playerRoom = new Room({"back" : secondaryRoom})
+            let playerRoom = new Room({"back" :secondaryRoom})
+            playerRoom.isPlayerRoom = true;
 
             playerRoom.desc = player.roomDesc;
 
@@ -100,7 +103,7 @@ class Room {
     }
 
 
-    static newPlayerRoom(p: Player) : void {
+    static newPlayerRoom(p: Player) :void {
         let playerRoom = new Room({"back": secondaryRoom});
 
         playerRoom.desc = p.roomDesc;
@@ -109,7 +112,7 @@ class Room {
         presetRooms.push(playerRoom);
     }
 
-    static allRooms() : Room[] {
+    static allRooms() :Room[] {
         return presetRooms;
     }
 }

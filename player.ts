@@ -7,17 +7,21 @@ class Player {
     private _name :string;
     private _desc :string[];
     private _password :string;
-    private _socket : MySocket;
+    private _socket :MySocket;
 
-    public currentRoom : Room;
+    public hasJoined :boolean;
+    public currentRoom :Room;
     public say :string;
-    public roomDesc : string;
-    static playerList : {[key:string]: Player} = {};
+    public roomDesc :string;
+    public ASCIIdisabled :boolean;
+    static playerList :{[key:string]: Player} = {};
 
-    constructor(username : string) {
+    constructor(username :string) {
         this._name = username;
         this._desc = [""];
         this._socket = null;
+        this.hasJoined = false;
+        this.ASCIIdisabled = false;
         this._password = "";
         this.say = "says";
         this.roomDesc = "";
@@ -25,7 +29,7 @@ class Player {
         Room.newPlayerRoom(this);
     }
 
-    rename(newName : string) {
+    rename(newName :string) {
         let room = Room.offSpawn.go(this.name);
         Room.offSpawn.disconnectRoom(this.name);
         Room.offSpawn.connectTo(room, newName);
@@ -33,26 +37,28 @@ class Player {
         Player.savePlayerData();
     }
 
-    encapsulate () : {} {
+    encapsulate () :{} {
         return {
             _name: this._name,
             _desc: this._desc,
             roomDesc: this.roomDesc,
             say: this.say,
-            _password: this._password
+            _password: this._password,
+            hasJoined: this.hasJoined,
+            ASCIIdisabled: this.ASCIIdisabled
         };
     }
 
-    connect(socket : MySocket) {
+    connect(socket :MySocket) {
         this._socket = socket;
     }
 
-    sendInRoom(msg : string) {
+    sendInRoom(msg :string) {
         this.currentRoom.broadcast(msg);
     }
 
     // wrapper functions to interact with current socket.
-    send(msg : string) : Player {
+    send(msg :string) :Player {
         if (!this._socket)
             this.currentRoom.leave(this.username);
         else {
@@ -60,7 +66,7 @@ class Player {
         }
         return this;
     }
-    emit(msg : string) : Player {
+    emit(msg :string) :Player {
         if (!this._socket)
             this.currentRoom.leave(this.username);
         else {
@@ -70,8 +76,8 @@ class Player {
     }
     //end
 
-    moveWhere() : {[code : string] : Room} {
-        let rooms : {[code : string] : Room} = {}
+    moveWhere() :{[code :string] :Room} {
+        let rooms :{[code :string] :Room} = {}
         this.currentRoom.onEveryRoom((code, room) => {
             rooms[code] = room;
         });
@@ -85,11 +91,11 @@ class Player {
         return !!this._password;
     }
 
-    checkPassword(attempt : string) {
+    checkPassword(attempt :string) {
         console.log(this.username + " has been attempted to reach by: " + attempt);
         return this._password === attempt;
     }
-    setPassword(newPassword : string) {
+    setPassword(newPassword :string) {
         this._password = newPassword;
     }
 
@@ -102,7 +108,7 @@ class Player {
         return Object.values(Player.playerList);
     }
 
-    static encapsulatePlayers() : {} {
+    static encapsulatePlayers() :{} {
         let players = {};
         for (let key of Object.keys(Player.playerList)) {
             players[key] = Player.playerList[key].encapsulate();
@@ -157,7 +163,7 @@ class Player {
 
     }
 
-    goto(room: Room, code: string) : this {
+    goto(room: Room, code: string) :this {
         const prev = this.currentRoom;
         room.join(this);
         prev.leave(this.username);

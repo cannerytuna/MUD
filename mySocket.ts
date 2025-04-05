@@ -9,7 +9,7 @@ export default class MySocket{
     private readonly socket: ssh2.Channel;
     private readonly _id: string;
     public player: Player;
-    public info : ssh2.ClientInfo;
+    public info :ssh2.ClientInfo;
 
     constructor(socket:ssh2.Channel, info:ssh2.ClientInfo){
         this.socket = socket;
@@ -30,19 +30,19 @@ export default class MySocket{
 
     }
 
-    connectPlayer(username : string) {
+    connectPlayer(username :string) {
         this.player = Player.playerList[username];
         this.player.connect(this);
     }
 
 
-    public  initiateChat (f? : Function) {
+    public  initiateChat (f? :Function) {
         this.socket.removeAllListeners("data");
         //
         // Accepts input from user
         //
         let bufArr:Buffer[] = [];
-        this.socket.on('data', (buf : Buffer) => {
+        this.socket.on('data', (buf :Buffer) => {
             let char = buf.toString();
             if (char.includes("\x1b["))
                 return;
@@ -114,7 +114,7 @@ export default class MySocket{
         this.send(sendBack);
     }
 
-    broadcast(msg : string){
+    broadcast(msg :string){
         getConnectedSockets().forEach(sock => {
             if (sock._id !== this._id) sock.send(msg)
         })
@@ -124,7 +124,7 @@ export default class MySocket{
         this.socket.write("\x1b[2J");
     }
 
-    send(msg? : string){
+    send(msg? :string){
         if (msg) {
             if (msg.includes("\n"))
                 msg = msg.split("\n").join("\r\n");
@@ -133,8 +133,8 @@ export default class MySocket{
         this.socket.write("\r\n");
     }
 
-    emit(msg : string) {
-        getConnectedSockets().forEach((s : MySocket )=> s.send(msg));
+    emit(msg :string) {
+        getConnectedSockets().forEach((s :MySocket )=> s.send(msg));
     }
 
     async close() {

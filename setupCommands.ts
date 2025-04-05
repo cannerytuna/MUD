@@ -4,21 +4,21 @@ import {EventEmitter} from "events";
 import Player from "./player.js";
 import Room from "./room.js";
 
-type Command = (this: MySocket, msg : string) => void;
+type Command = (this: MySocket, msg :string) => void;
 interface FunctionList<T> {
-    [code : string] : T;
+    [code :string] :T;
 }
 
 
 
-const editCommands : FunctionList<(this : MySocket, text : string, allText : string[]) => void> = {
-    desc : function () {
+const editCommands :FunctionList<(this :MySocket, text :string, allText :string[]) => void> = {
+    desc :function () {
         editDescMode.bind(this)();
     },
-    name : function (_, arr) {
+    name :function (_, arr) {
         this.player.rename(arr.join(' '));
     },
-    say : function (text) {
+    say :function (text) {
         this.player.say = text
     }
 }
@@ -37,8 +37,8 @@ const commands: FunctionList<Command> = {
     go: function (msg) {
         msg  = msg.trim().toLowerCase();
         this.player.currentRoom = this.player.currentRoom || Room.spawn;
-        let possibleRooms : {[code : string] : Room} = this.player.moveWhere()
-        let targetRoom : Room;
+        let possibleRooms :{[code :string] :Room} = this.player.moveWhere()
+        let targetRoom :Room;
         if (possibleRooms[msg])
             targetRoom = possibleRooms[msg]
 
@@ -47,8 +47,8 @@ const commands: FunctionList<Command> = {
             this.send(targetRoom.desc);
             this.send();
             this.send(targetRoom.manyPlayers != 0 ?
-                `There ${targetRoom.manyPlayers > 1 ? "are some people" : "is someone"} here. 
-                ${randomize(moveTexts)} ` : "");
+                `There ${targetRoom.manyPlayers > 1 ? "are some people" :"is someone"} here. 
+                ${randomize(moveTexts)} ` :"" +( targetRoom.isPlayerRoom ? "  [go back]" :""));
             this.player.goto(targetRoom, msg);
 
         } else {
@@ -60,7 +60,7 @@ const commands: FunctionList<Command> = {
     ws: function () {
         let len = getConnectedSockets().length
         this.send();
-        this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" : "" ) + " online:\x1b[0m");
+        this.send("\x1b[31;1;4mThere is " + len + " user" + (len > 1 ? "s" :"" ) + " online:\x1b[0m");
         getConnectedSockets().map(s => s.player.name).forEach(n => this.send(n + " is online."));
         this.send(' ');
     },
@@ -117,19 +117,26 @@ const commands: FunctionList<Command> = {
         this.send("\x1b[0m");
     },
     look: function (msg) {
+
+        if (this.player.currentRoom.isItem(msg)){
+            this.send();
+            this.send(this.player.currentRoom.get(msg))
+            this.send();
+        }
+
         if (msg == "") {
             let players = this.player.currentRoom.allNames.filter(n => n != this.player.name);
             let len = players.length;
             this.send();
             this.send(this.player.currentRoom.desc);
             this.send();
-            this.send(`\x1b[31;1;4m${len <= 0 ? "There is no one around you." : (len == 1 ? "There is someone here," : "There is some people here,")}\x1b[0m`);
+            this.send(`\x1b[31;1;4m${len <= 0 ? "There is no one around you." :(len == 1 ? "There is someone here," :"There is some people here,")}\x1b[0m`);
             players.forEach(n => this.send(n + " is here."));
             this.send();
             return;
         }
 
-        let player : Player;
+        let player :Player;
         let sArr = msg.split(' ');
         if (sArr[0] == "me") {
             player = this.player;
@@ -168,13 +175,13 @@ const help: {} = {
 }
 
 
-async function editDescMode(this : MySocket) {
+async function editDescMode(this :MySocket) {
     let desc :string[] = [];
     this.send("====Edit Mode====");
 
     let currentIndex = 0;
 
-    this.initiateChat((msg : string) => {
+    this.initiateChat((msg :string) => {
         if (msg.charAt(0) == '.'){
             let command = msg.split(" ");
             let arg = Number(command[1]) - 1;
@@ -244,7 +251,7 @@ async function editDescMode(this : MySocket) {
 const commandEmit = new EventEmitter();
 
 for (const key of Object.keys(commands)){
-    commandEmit.on(key, (scope : MySocket, msg) => {
+    commandEmit.on(key, (scope :MySocket, msg) => {
         commands[key].bind(scope) (msg);
     })
 }
